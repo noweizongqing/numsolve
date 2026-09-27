@@ -97,16 +97,85 @@ answer:
 | The secant's error falls as the golden ratio's power, 1.618 | log-ratios of 1.83, 1.68 and 1.67 for the last steps |
 | The Illinois halving is what keeps false position off an end | exact in 17 steps where the plain method is 2.2e-3 out at 100 |
 
+## Ordinary differential equations
+
+`ode.mbt` walks a single equation `y'(t) = f(t, y)` from a starting value, and
+returns a `Trajectory`: the times it stopped at and the value at each, the
+first of them the starting point. A trajectory is read with `times()`,
+`values()`, `end_value()` and `length()`. Integration backwards is allowed —
+`t1` may be below `t0` — and the steps then have the sign of `t1 - t0`.
+
+```moonbit nocheck
+///|
+let doubling = @numsolve.rk4(fn(_t, y) { y }, 1.0, 0.0, 1.0, 10) // 2.718279744135166
+```
+
+Four steppers, the first three of them told how many steps to take and the
+fourth told how accurate to be:
+
+| Stepper | Order | Evaluations per step | Error when the step halves |
+| --- | --- | --- | --- |
+| `euler` | 1 | 1 | ÷ 2 |
+| `midpoint` | 2 | 2 | ÷ 4 |
+| `rk4` | 4 | 4 | ÷ 16 |
+| `rk45` | 5, adaptive | 7 | set by the tolerance |
+
+On `y' = y` from 1 over `[0, 1]`, where the answer is e, ten steps of each
+stepper give:
+
+| Stepper | Ten steps | Error |
+| --- | --- | --- |
+| `euler` | 2.5937424601 | 1.2e-1 |
+| `midpoint` | 2.714080846608224 | 4.2e-3 |
+| `rk4` | 2.718279744135166 | 2.1e-6 |
+| `rk45` at 1e-8 | 2.7182818362088534 | 7.8e-9, in 11 steps and 77 evaluations |
+
+`euler` is here to be measured against rather than used. `rk4` is the default
+for an interval that can be stepped evenly: order four from four evaluations
+per step. `rk45` is Dormand-Prince 5(4)7M — seven evaluations produce both a
+fifth-order answer and a fourth-order one, their difference estimates the
+error of the step, and the step size of the next step is set from that
+estimate. The trajectory it returns is sampled where it chose to stop, which
+is neither even nor as many points: for the same error of about 8e-9 on
+`y' = y` it spends 77 evaluations where `rk4` needs forty steps and 160.
+
+The tolerance of `rk45` is not the tolerance of `roots.mbt`. It is the error a
+step is allowed, measured relative to the value as `|y5 - y4| / (1 + |y5|)`,
+and it must be positive — a tolerance of zero can never be met, and is refused
+here rather than read as "take a fixed number of steps":
+
+| Variant | Payload | Raised when |
+| --- | --- | --- |
+| `NonPositiveSteps(Int)` | the step count | a fixed-step stepper was given zero steps or fewer |
+| `NonPositiveTolerance(Double)` | the tolerance | `rk45` was given a tolerance that is not positive |
+| `MaxEvaluations(Int)` | the budget | `rk45` spent its evaluations of `f` without reaching `t1` |
+
+`max_evaluations` is a budget on calls to `f` rather than on steps, and each
+step costs seven of them; running out of it raises rather than returning a
+trajectory that stops short of `t1`.
+
+The tests measure the order each stepper claims — halving the step divides the
+error by 2, 4 and 16, measured at 1.92, 3.85 and 15.35 — and that the adaptive
+stepper meets the tolerance it is given rather than a fixed number of steps:
+the same run at 1e-4, 1e-6, 1e-8 and 1e-10 lands at errors of 1.9e-5, 5.6e-7,
+7.8e-9 and 8.7e-11, each under the tolerance asked for. A stiff equation,
+`y' = −1000y`, is walked to the end of the interval by spending steps where
+the solution moves, and a right-hand side that does not depend on `y` is
+integrated exactly, because there a Runge-Kutta step is a quadrature rule.
+
 ## Testing
 
 ```
 moon test
 ```
 
-18 tests, and every golden value in them was computed first with SciPy 1.18
+34 tests, and every golden value in them was computed first with SciPy 1.18
 and NumPy 2.5 and then written down in full: SciPy's `brentq` on `x² − 2`
 returns 1.4142135623731364, which is what the test holds Brent to, and the
-convergence rates above are read off the iterates rather than assumed.
+convergence rates above are read off the iterates rather than assumed. The
+ODE goldens come from a model of the same arithmetic — the same step sizes,
+the same order of operations — so the adaptive stepper's eleven steps and 77
+evaluations are what the test asserts, not a range it is allowed to fall in.
 
 The package also carries benchmarks, run against the same functions:
 
