@@ -6,13 +6,27 @@ pub fn bisection((Double) -> Double, Double, Double, tolerance? : Double, max_it
 
 pub fn brent((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn euler((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+
 pub fn false_position((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn midpoint((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+
 pub fn newton((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+
+pub fn rk4((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+
+pub fn rk45((Double, Double) -> Double, Double, Double, Double, tolerance? : Double, max_evaluations? : Int) -> Trajectory raise OdeError
 
 pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
 // Errors
+pub suberror OdeError {
+  NonPositiveSteps(Int)
+  NonPositiveTolerance(Double)
+  MaxEvaluations(Int)
+}
+
 pub suberror RootError {
   NotBracketed(Double, Double)
   ZeroDerivative(Double)
@@ -21,6 +35,13 @@ pub suberror RootError {
 }
 
 // Types and methods
+pub struct Trajectory {
+  // private fields
+}
+pub fn Trajectory::end_value(Self) -> Double
+pub fn Trajectory::length(Self) -> Int
+pub fn Trajectory::times(Self) -> Array[Double]
+pub fn Trajectory::values(Self) -> Array[Double]
 
 // Type aliases
 
