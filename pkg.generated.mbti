@@ -25,6 +25,13 @@ pub fn solve_linear_system(Array[Array[Double]], Array[Double]) -> Array[Double]
 pub fn solve_tridiagonal(Array[Double], Array[Double], Array[Double], Array[Double]) -> Array[Double] raise LinError
 
 // Errors
+pub suberror InterpError {
+  TooFewKnots(Int)
+  UnevenLengths(Int, Int)
+  NotSorted(Double)
+  DuplicateKnots(Double)
+}
+
 pub suberror LinError {
   NotSquare(Int, Int)
   SizeMismatch(Int, Int)
@@ -54,6 +61,14 @@ pub fn Cholesky::determinant(Self) -> Double
 pub fn Cholesky::size(Self) -> Int
 pub fn Cholesky::solve(Self, Array[Double]) -> Array[Double] raise LinError
 
+pub struct CubicSpline {
+  // private fields
+}
+pub fn CubicSpline::coefficients(Self) -> Array[Array[Double]]
+pub fn CubicSpline::evaluate(Self, Double) -> Double?
+pub fn CubicSpline::moments(Self) -> Array[Double]
+pub fn CubicSpline::new(Array[Double], Array[Double], SplineBoundary) -> Self raise InterpError
+
 pub struct LU {
   // private fields
 }
@@ -63,6 +78,18 @@ pub fn LU::inverse(Self) -> Array[Array[Double]] raise LinError
 pub fn LU::size(Self) -> Int
 pub fn LU::solve(Self, Array[Double]) -> Array[Double] raise LinError
 pub fn LU::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
+
+pub struct LinearInterp {
+  // private fields
+}
+pub fn LinearInterp::evaluate(Self, Double) -> Double?
+pub fn LinearInterp::new(Array[Double], Array[Double]) -> Self raise InterpError
+
+pub(all) enum SplineBoundary {
+  Natural
+  Clamped(Double, Double)
+  NotAKnot
+}
 
 pub struct Trajectory {
   // private fields
