@@ -20,7 +20,18 @@ pub fn rk45((Double, Double) -> Double, Double, Double, Double, tolerance? : Dou
 
 pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn solve_linear_system(Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
+
+pub fn solve_tridiagonal(Array[Double], Array[Double], Array[Double], Array[Double]) -> Array[Double] raise LinError
+
 // Errors
+pub suberror LinError {
+  NotSquare(Int, Int)
+  SizeMismatch(Int, Int)
+  Singular(Int)
+  NotPositiveDefinite(Int)
+}
+
 pub suberror OdeError {
   NonPositiveSteps(Int)
   NonPositiveTolerance(Double)
@@ -35,6 +46,24 @@ pub suberror RootError {
 }
 
 // Types and methods
+pub struct Cholesky {
+  // private fields
+}
+pub fn Cholesky::decompose(Array[Array[Double]]) -> Self raise LinError
+pub fn Cholesky::determinant(Self) -> Double
+pub fn Cholesky::size(Self) -> Int
+pub fn Cholesky::solve(Self, Array[Double]) -> Array[Double] raise LinError
+
+pub struct LU {
+  // private fields
+}
+pub fn LU::decompose(Array[Array[Double]]) -> Self raise LinError
+pub fn LU::determinant(Self) -> Double
+pub fn LU::inverse(Self) -> Array[Array[Double]] raise LinError
+pub fn LU::size(Self) -> Int
+pub fn LU::solve(Self, Array[Double]) -> Array[Double] raise LinError
+pub fn LU::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
+
 pub struct Trajectory {
   // private fields
 }
