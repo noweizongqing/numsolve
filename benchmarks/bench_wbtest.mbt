@@ -1,14 +1,15 @@
 ///|
 /// Benchmarks for the searches a root is found with, run against the
-/// quadratic x² − 2 and the cubic x³ − x − 2, and for the steppers a trajectory
-/// is walked with:
+/// quadratic x² − 2 and the cubic x³ − x − 2; for the steppers a trajectory is
+/// walked with; and for the factorizations a linear system is solved with:
 ///
 ///     moon bench --release benchmarks
 ///
-/// Each benchmark is named for one search or one stepper, so a number reads as
-/// what that method costs on a smooth function — and so that a change to
-/// bisection's halving, Brent's curve fitting, Newton's tangent or the
-/// Dormand-Prince tableau can be seen in the numbers rather than argued about.
+/// Each benchmark is named for one method, so a number reads as what that
+/// method costs on a small problem — and so that a change to bisection's
+/// halving, Brent's curve fitting, Newton's tangent, the Dormand-Prince
+/// tableau or an elimination loop can be seen in the numbers rather than
+/// argued about.
 ///
 /// The timed closures do not raise: a bracket the tests already assert is
 /// assumed to be good, and a failure inside a timed closure would only
@@ -132,5 +133,75 @@ test "an adaptive rk45 trajectory" (it : @bench.T) {
       _ => fallback
     }
     it.keep(trajectory.end_value())
+  })
+}
+
+///|
+/// The 3x3 system the linear benchmarks are run on, whose exact solution is
+/// [0.5, 0, 0].
+fn sample_matrix() -> Array[Array[Double]] {
+  [[2.0, 1.0, 1.0], [4.0, 3.0, 3.0], [8.0, 7.0, 9.0]]
+}
+
+///|
+/// A factorization: nine entries, two row exchanges, and two columns
+/// eliminated — the `n³/3` that is paid once and then used by every
+/// right-hand side after it.
+test "an LU decomposition" (it : @bench.T) {
+  let fallback = @numsolve.LU::decompose(sample_matrix()) catch {
+    _ => abort("the sample matrix is not singular")
+  }
+  it.bench(fn() {
+    let decomposition = @numsolve.LU::decompose(sample_matrix()) catch {
+      _ => fallback
+    }
+    it.keep(decomposition.determinant())
+  })
+}
+
+///|
+/// A Cholesky solve: the factorization of a symmetric positive definite
+/// matrix, at half the multiplications of an LU and with no pivoting, and the
+/// two substitutions that answer with it.
+test "a cholesky solve" (it : @bench.T) {
+  let symmetric : Array[Array[Double]] = [
+    [4.0, 2.0, 1.0],
+    [2.0, 3.0, 1.0],
+    [1.0, 1.0, 2.0],
+  ]
+  let fallback = @numsolve.Cholesky::decompose(symmetric) catch {
+    _ => abort("[[4,2,1],[2,3,1],[1,1,2]] is positive definite")
+  }
+  it.bench(fn() {
+    let decomposition = @numsolve.Cholesky::decompose(symmetric) catch {
+      _ => fallback
+    }
+    it.keep(decomposition.determinant())
+  })
+}
+
+///|
+/// A tridiagonal solve: the Thomas recurrence over three rows, which is one
+/// pass down and one pass back rather than an elimination — the reason a
+/// spline can be built in linear time.
+test "a tridiagonal solve" (it : @bench.T) {
+  let fallback = @numsolve.solve_tridiagonal(
+    [1.0, 2.0],
+    [3.0, 4.0, 5.0],
+    [1.0, 2.0],
+    [1.0, 2.0, 3.0],
+  ) catch {
+    _ => abort("[3,4,5] with no zero pivot is not singular")
+  }
+  it.bench(fn() {
+    let solution = @numsolve.solve_tridiagonal(
+      [1.0, 2.0],
+      [3.0, 4.0, 5.0],
+      [1.0, 2.0],
+      [1.0, 2.0, 3.0],
+    ) catch {
+      _ => fallback
+    }
+    it.keep(solution[0])
   })
 }

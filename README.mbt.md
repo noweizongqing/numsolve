@@ -163,13 +163,60 @@ the same run at 1e-4, 1e-6, 1e-8 and 1e-10 lands at errors of 1.9e-5, 5.6e-7,
 the solution moves, and a right-hand side that does not depend on `y` is
 integrated exactly, because there a Runge-Kutta step is a quadrature rule.
 
+## Linear systems
+
+`linear.mbt` solves `A · x = b` for a dense square matrix, given as an
+`Array[Array[Double]]` of rows.
+
+```moonbit nocheck
+///|
+let a = [[2.0, 1.0, 1.0], [4.0, 3.0, 3.0], [8.0, 7.0, 9.0]]
+
+///|
+let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
+```
+
+| Function | Method | Use it when |
+| --- | --- | --- |
+| `LU::decompose` and `solve` | Gaussian elimination with partial pivoting, `P · A = L · U` | the matrix is general, and one factorization is reused for several right-hand sides |
+| `Cholesky::decompose` and `solve` | `A = L · Lᵀ`, no pivoting | the matrix is symmetric positive definite: half the work of an LU |
+| `solve_tridiagonal` | the Thomas recurrence over three diagonals | the matrix is tridiagonal — `O(n)` instead of `O(n³)` |
+
+A decomposition is worth keeping when there is more than one right-hand side:
+`LU::solve_many` answers with a list of them after one factorization, and
+`LU::inverse` is that call with the identity. `LU::determinant` and
+`Cholesky::determinant` come from the diagonal of the factorization at no
+extra cost.
+
+Pivoting is not an optimization here but the difference between an answer and
+a wrong one. On `[[0, 2], [3, 4]]` there is no answer at all without a row
+exchange — the pivot is zero — and on `[[1e-18, 1], [1, 1]]`, whose exact
+solution is `[1, 1]`, elimination in the order the rows come in divides by
+1e-18 and answers `[0, 1]`. Both cases are in the tests, the second one
+against an elimination written without the pivot search.
+
+What the arithmetic costs shows up in the condition number. The Hilbert
+matrix of order 8 — `H[i][j] = 1 / (i + j + 1)`, condition number 1.5e10 —
+solved for the right-hand side made of its row sums has the exact solution of
+all ones, and comes back with a largest error of 1.4e-7: about ten of the
+sixteen digits a double has are left, and that is the matrix rather than the
+method. The test asserts 1e-5 rather than that figure, so that a different
+order of summation inside the same algorithm cannot fail it.
+
+| Variant | Payloads | Raised when |
+| --- | --- | --- |
+| `NotSquare(Int, Int)` | rows, columns | the matrix is not square, or its rows are not all the same length |
+| `SizeMismatch(Int, Int)` | needed, given | a right-hand side or a diagonal is the wrong length |
+| `Singular(Int)` | the column | a pivot is exactly zero and no row below it can be exchanged for it |
+| `NotPositiveDefinite(Int)` | the index | Cholesky was given a matrix whose pivot is not positive |
+
 ## Testing
 
 ```
 moon test
 ```
 
-34 tests, and every golden value in them was computed first with SciPy 1.18
+50 tests, and every golden value in them was computed first with SciPy 1.18
 and NumPy 2.5 and then written down in full: SciPy's `brentq` on `x² − 2`
 returns 1.4142135623731364, which is what the test holds Brent to, and the
 convergence rates above are read off the iterates rather than assumed. The
