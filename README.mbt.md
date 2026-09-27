@@ -210,13 +210,108 @@ order of summation inside the same algorithm cannot fail it.
 | `Singular(Int)` | the column | a pivot is exactly zero and no row below it can be exchanged for it |
 | `NotPositiveDefinite(Int)` | the index | Cholesky was given a matrix whose pivot is not positive |
 
+## Interpolation
+
+`interp.mbt` draws a curve through a table of points — two arrays, `xs` and
+`ys`, of the same length, with the `xs` in increasing order — and reads the
+value it takes between them.
+
+```moonbit nocheck
+///|
+let table_x = [0.0, 1.0, 2.0, 3.0]
+
+///|
+let table_y = [1.0, 2.0, 0.0, 4.0]
+
+///|
+let line = @numsolve.LinearInterp::new(table_x, table_y)
+
+///|
+let spline = @numsolve.CubicSpline::new(
+  table_x,
+  table_y,
+  @numsolve.SplineBoundary::Natural,
+)
+```
+
+| Type | The curve | Use it when |
+| --- | --- | --- |
+| `LinearInterp` | the straight line between the two knots around `x` | the table is dense, or a kink at every knot does not matter |
+| `CubicSpline` | one cubic per interval, joined so that value, slope and second derivative agree at every knot | the curve has to be smooth: it is `C²`, and its slope is continuous across the knots |
+
+A spline is the piecewise cubic whose second derivatives `M[i]` at the knots
+solve `h[i-1]·M[i-1] + 2(h[i-1] + h[i])·M[i] + h[i]·M[i+1] = 6·(s[i] - s[i-1])`,
+where `h` is an interval's width and `s` its slope — `n` unknowns and `n - 2`
+equations, so two more conditions are needed and `SplineBoundary` is which
+ones:
+
+| Boundary | The two extra conditions | End behaviour |
+| --- | --- | --- |
+| `Natural` | `M[0] = M[n-1] = 0` | free to bend at both ends: the choice when nothing is known about them |
+| `Clamped(d0, dn)` | `S'(x0) = d0` and `S'(xn) = dn` | prescribed slopes at the two ends |
+| `NotAKnot` | the third derivative is continuous at the second and second-to-last knot | no assumption about the ends: the two outermost cubics are one polynomial |
+
+The system is solved by `solve_tridiagonal` from `linear.mbt`, so a spline
+through `n` points costs `O(n)` — one pass down and one back — rather than the
+`O(n³)` of a dense elimination. The not-a-knot condition is the one that does
+not fit that system as a row: it relates three unknowns where row 0 has room
+for two, so the end curvature is eliminated with it rather than solved for, and
+read back once the interior ones are known.
+
+On the table above, the three boundaries give:
+
+| Boundary | `S(0.5)` | `S(1.5)` | `S(2.5)` |
+| --- | --- | --- | --- |
+| `Natural` | 1.95 | 0.775 | 1.325 |
+| `Clamped(0, 0)` | 1.65 | 0.625 | 2.225 |
+| `NotAKnot` | 2.4375 | 0.8125 | 0.6875 |
+
+`moments()` is the second derivatives `M` the cubics are built from — `[0,
+-7.2, 10.8, 0]` for the natural spline above — and `coefficients()` is the
+cubics themselves, one row `[a, b, c, d]` per interval for the polynomial
+`a·x³ + b·x² + c·x + d` in the global `x` rather than in the distance from the
+knot at the left of the interval. Two neighbouring rows of it describe the
+same value, the same slope and the same second derivative at the knot they
+share, which is what the tests assert to check the `C²` claim at every knot
+under all three boundaries.
+
+A table of two points is one interval, and under `Natural` or `Clamped` that
+is a straight line; a not-a-knot spline needs a knot that is not one, so it
+needs three.
+
+A point outside the range of the table has no answer — a spline describes the
+interval it was built from, not the line beyond it — so `evaluate` returns
+`None` there, and what cannot be built at all is raised:
+
+| Variant | Payload | Raised when |
+| --- | --- | --- |
+| `TooFewKnots(Int)` | the number of points | fewer than two points were given, or fewer than three for a not-a-knot spline |
+| `UnevenLengths(Int, Int)` | the two lengths | `xs` and `ys` are not the same length |
+| `NotSorted(Double)` | the first knot out of order | the knots do not increase |
+| `DuplicateKnots(Double)` | the repeated knot | two knots are the same point |
+
+```moonbit nocheck
+///|
+let value = @numsolve.CubicSpline::new(table_x, table_y, @numsolve.SplineBoundary::Natural) catch {
+  _ => abort("the table is a valid one")
+}.evaluate(1.5) // Some(0.775)
+```
+
+The tests hold the fit to what SciPy's `CubicSpline` returns for the same
+table under the same boundary, and to the properties a spline is chosen for:
+every knot is reproduced exactly, the three boundaries agree on a table that
+lies on a straight line, and the cubics of neighbouring intervals meet in
+value, slope and second derivative. Sampling `e^(x)` at 0, 0.25, 0.5 and 1 and
+fitting with its true end slopes 1 and e puts the curve within 2.2e-5 of it at
+0.125 and within 4.4e-4 at 0.75 — the price of a cubic per interval.
+
 ## Testing
 
 ```
 moon test
 ```
 
-50 tests, and every golden value in them was computed first with SciPy 1.18
+63 tests, and every golden value in them was computed first with SciPy 1.18
 and NumPy 2.5 and then written down in full: SciPy's `brentq` on `x² − 2`
 returns 1.4142135623731364, which is what the test holds Brent to, and the
 convergence rates above are read off the iterates rather than assumed. The

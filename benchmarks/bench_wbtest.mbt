@@ -205,3 +205,55 @@ test "a tridiagonal solve" (it : @bench.T) {
     it.keep(solution[0])
   })
 }
+
+///|
+/// The knots the interpolation benchmarks are run on.
+fn table_xs() -> Array[Double] {
+  [0.0, 1.0, 2.0, 3.0]
+}
+
+///|
+/// The values at those knots.
+fn table_ys() -> Array[Double] {
+  [1.0, 2.0, 0.0, 4.0]
+}
+
+///|
+/// A linear interpolation: the interval is looked up, one division is divided
+/// out of the two ends, and the value is the average of them — the cheapest
+/// thing that passes through the points.
+test "a linear interpolation" (it : @bench.T) {
+  let fallback = @numsolve.LinearInterp::new(table_xs(), table_ys()) catch {
+    _ => abort("the sample table is a valid one")
+  }
+  it.bench(fn() {
+    let line = @numsolve.LinearInterp::new(table_xs(), table_ys()) catch {
+      _ => fallback
+    }
+    it.keep(line.evaluate(1.5).unwrap())
+  })
+}
+
+///|
+/// A natural cubic spline: the tridiagonal system over the second derivatives
+/// is solved once, and the value then costs one Horner pass over the cubic of
+/// the interval it falls in.
+test "a cubic spline" (it : @bench.T) {
+  let fallback = @numsolve.CubicSpline::new(
+    table_xs(),
+    table_ys(),
+    @numsolve.SplineBoundary::Natural,
+  ) catch {
+    _ => abort("the sample table is a valid one")
+  }
+  it.bench(fn() {
+    let spline = @numsolve.CubicSpline::new(
+      table_xs(),
+      table_ys(),
+      @numsolve.SplineBoundary::Natural,
+    ) catch {
+      _ => fallback
+    }
+    it.keep(spline.evaluate(1.5).unwrap())
+  })
+}
