@@ -1,0 +1,46 @@
+name: CI
+
+# Everything the module claims: it compiles without warnings, it is formatted,
+# its checked-in interfaces match the source, its tests pass, and its
+# benchmarks run. Each of these also runs locally with the same commands.
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The installer serves `latest` and `nightly` only: asking for a version
+      # by name downloads a path the CDN answers 403 for, so the toolchain is
+      # not pinned, and the version in use is recorded by the next step.
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Toolchain
+        run: moon version --all
+
+      - name: Check
+        run: moon check --deny-warn
+
+      - name: Formatting
+        run: moon fmt --check
+
+      - name: Generated interfaces
+        run: |
+          moon info
+          git diff --exit-code
+
+      - name: Tests
+        run: moon test
+
+      # The target is wasm, as the module declares, so no C toolchain is
+      # needed and the numbers stay comparable with the local run.
+      - name: Benchmarks
+        run: moon bench --release --target wasm
