@@ -305,13 +305,40 @@ value, slope and second derivative. Sampling `e^(x)` at 0, 0.25, 0.5 and 1 and
 fitting with its true end slopes 1 and e puts the curve within 2.2e-5 of it at
 0.125 and within 4.4e-4 at 0.75 — the price of a cubic per interval.
 
+## Command line
+
+The solvers are also wired to a command-line demo under `cmd/main`, which runs
+one solver on one problem and prints its answer next to the number the problem
+is known to have:
+
+```
+moon run cmd/main -- root sqrt2
+moon run cmd/main -- ode growth --steps 100
+moon run cmd/main -- spline natural
+moon run cmd/main -- solve hilbert
+```
+
+| Command | Subjects | Solver | Prints |
+| --- | --- | --- | --- |
+| `root` | `sqrt2`, `cubic`, `trig` | `brent`, `false_position` | the root, against √2 or π/6 |
+| `ode` | `growth`, `decay`, optionally `--steps N` | `rk45`, or `rk4` with N steps | the end value, e or 1/e, and the error |
+| `spline` | `natural`, `clamped`, `notaknot` | `CubicSpline` through (0,1), (1,2), (2,0), (3,4) | every piece's coefficients and three samples |
+| `solve` | `demo`, `hilbert` | `solve_linear_system` | the 3×3 solution, or how close Hilbert 8's is to all ones |
+
+`--help` prints the same list, and anything that is not a command is refused
+with a message rather than answered with a guess — the parser is tested on
+both. The demo lives in a package of its own, so its tests also hold the
+package boundary to its word: they call `brent` and the other solvers from
+outside, with and without the optional arguments, and assert the same values
+the library's own tests do.
+
 ## Testing
 
 ```
 moon test
 ```
 
-63 tests, and every golden value in them was computed first with SciPy 1.18
+66 tests, and every golden value in them was computed first with SciPy 1.18
 and NumPy 2.5 and then written down in full: SciPy's `brentq` on `x² − 2`
 returns 1.4142135623731364, which is what the test holds Brent to, and the
 convergence rates above are read off the iterates rather than assumed. The
