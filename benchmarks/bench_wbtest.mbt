@@ -120,6 +120,22 @@ test "an rk4 trajectory" (it : @bench.T) {
 }
 
 ///|
+/// A long fixed-step trajectory: a thousand steps of rk4, which is what a
+/// caller pays when an interval is stepped finely enough to make the error
+/// invisible — four thousand evaluations, ten times the arrays above.
+test "an rk4 trajectory of 1000 steps" (it : @bench.T) {
+  let fallback = @numsolve.rk4(growth, 1.0, 0.0, 1.0, 1000) catch {
+    _ => abort("y' = y is not a hard equation")
+  }
+  it.bench(fn() {
+    let trajectory = @numsolve.rk4(growth, 1.0, 0.0, 1.0, 1000) catch {
+      _ => fallback
+    }
+    it.keep(trajectory.end_value())
+  })
+}
+
+///|
 /// An adaptive trajectory: eleven steps and 77 evaluations of the same
 /// equation, each step costing seven evaluations and a tableau of six
 /// coefficient rows — the price of not having to be told how many steps to
@@ -156,6 +172,72 @@ test "an LU decomposition" (it : @bench.T) {
       _ => fallback
     }
     it.keep(decomposition.determinant())
+  })
+}
+
+///|
+/// The Hilbert matrix of order eight, built once so the cost of building it is
+/// not timed: the ill-conditioned matrix the condition-number demonstrations
+/// are run on, whose right-hand side of row sums has the exact solution of all
+/// ones.
+fn hilbert_8() -> Array[Array[Double]] {
+  let size = 8
+  let matrix : Array[Array[Double]] = Array(capacity=size)
+  let mut i = 0
+  while i < size {
+    let row : Array[Double] = Array(capacity=size)
+    let mut j = 0
+    while j < size {
+      row.push(1.0 / (i + j + 1).to_double())
+      j = j + 1
+    }
+    matrix.push(row)
+    i = i + 1
+  }
+  matrix
+}
+
+///|
+/// The row sums of `hilbert_8`, the right-hand side it is solved against.
+fn hilbert_rhs() -> Array[Double] {
+  let matrix = hilbert_8()
+  let size = matrix.length()
+  let rhs : Array[Double] = Array(capacity=size)
+  let mut i = 0
+  while i < size {
+    let mut sum = 0.0
+    let mut j = 0
+    while j < size {
+      sum = sum + matrix[i][j]
+      j = j + 1
+    }
+    rhs.push(sum)
+    i = i + 1
+  }
+  rhs
+}
+
+///|
+/// An ill-conditioned solve: the Hilbert matrix of order eight factored once
+/// and substituted once, pivoting over 64 entries — the `n³/3` at `n = 8`,
+/// where the size is enough for the pivoting and the arithmetic to be visible
+/// and the numbers still come back.
+test "a Hilbert 8 LU solve" (it : @bench.T) {
+  let fallback = @numsolve.LU::decompose(hilbert_8()) catch {
+    _ => abort("Hilbert matrices are not singular")
+  }
+  let fallback_solution = fallback.solve(hilbert_rhs()) catch {
+    _ => abort("the row sums solve cleanly")
+  }
+  let fallback_value = fallback_solution[0]
+  it.bench(fn() {
+    let decomposition = @numsolve.LU::decompose(hilbert_8()) catch {
+      _ => fallback
+    }
+    let solution = decomposition.solve(hilbert_rhs()) catch {
+      _ => [fallback_value]
+    }
+    it.keep(solution[0])
   })
 }
 
