@@ -8,9 +8,13 @@ pub fn brent((Double) -> Double, Double, Double, tolerance? : Double, max_iterat
 
 pub fn euler((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
 
+pub fn euler_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
+
 pub fn false_position((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
 pub fn midpoint((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+
+pub fn midpoint_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
 
 pub fn newton((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
@@ -18,7 +22,13 @@ pub fn rk4((Double, Double) -> Double, Double, Double, Double, Int) -> Trajector
 
 pub fn rk45((Double, Double) -> Double, Double, Double, Double, tolerance? : Double, max_evaluations? : Int) -> Trajectory raise OdeError
 
+pub fn rk45_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, rtol? : Double, atol? : Double, max_evaluations? : Int) -> VectorTrajectory raise OdeError
+
+pub fn rk4_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
+
 pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+
+pub fn solve_ivp((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, solver? : OdeMethod, steps? : Int, rtol? : Double, atol? : Double, max_evaluations? : Int) -> VectorTrajectory raise OdeError
 
 pub fn solve_linear_system(Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
 
@@ -40,6 +50,8 @@ pub suberror LinError {
 }
 
 pub suberror OdeError {
+  EmptyState
+  DimensionMismatch(Int, Int)
   NonPositiveSteps(Int)
   NonPositiveTolerance(Double)
   MaxEvaluations(Int)
@@ -85,6 +97,13 @@ pub struct LinearInterp {
 pub fn LinearInterp::evaluate(Self, Double) -> Double?
 pub fn LinearInterp::new(Array[Double], Array[Double]) -> Self raise InterpError
 
+pub(all) enum OdeMethod {
+  Euler
+  Midpoint
+  RK4
+  RK45
+}
+
 pub(all) enum SplineBoundary {
   Natural
   Clamped(Double, Double)
@@ -98,6 +117,15 @@ pub fn Trajectory::end_value(Self) -> Double
 pub fn Trajectory::length(Self) -> Int
 pub fn Trajectory::times(Self) -> Array[Double]
 pub fn Trajectory::values(Self) -> Array[Double]
+
+pub struct VectorTrajectory {
+  // private fields
+}
+pub fn VectorTrajectory::dimension(Self) -> Int
+pub fn VectorTrajectory::end_state(Self) -> Array[Double]
+pub fn VectorTrajectory::length(Self) -> Int
+pub fn VectorTrajectory::states(Self) -> Array[Array[Double]]
+pub fn VectorTrajectory::times(Self) -> Array[Double]
 
 // Type aliases
 

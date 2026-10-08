@@ -1,8 +1,17 @@
 # numsolve
 
 Numerical solvers in pure MoonBit: root finding, ordinary differential
-equations, linear systems, and interpolation — written against published
-algorithms, and checked against a reference implementation of each.
+equations, linear systems, and interpolation. The algorithms are standard
+published methods, implemented as a small MoonBit-first toolkit; selected
+results are checked against analytic solutions or SciPy where that is a
+meaningful reference.
+
+This is not presented as a new algorithm or a drop-in replacement for mature
+numerical ecosystems. Its value is a coherent, tested MoonBit API that covers
+common scalar and small-system problems without a foreign-language runtime.
+The ODE layer supports both the original scalar convenience functions and
+vector systems through `solve_ivp`; event handling, dense output, and implicit
+or stiff solvers are not implemented yet and are called out below.
 
 ```moonbit nocheck
 ///|
@@ -11,6 +20,17 @@ let root = @numsolve.brent(fn(x) { x * x - 2.0 }, 1.0, 2.0) // 1.414213562373136
 ///|
 let faster = @numsolve.newton(fn(x) { x * x - 2.0 }, fn(x) { 2.0 * x }, 1.5) // 1.4142135623730951, in four steps
 ```
+
+## Scope
+
+- The package favours correctness, explicit error values, and small dependency
+  surfaces over matching the full feature set of SciPy, Sundials, or
+  DifferentialEquations.jl.
+- ODE support now includes vector-valued states, relative and absolute
+  tolerances, and a common `solve_ivp` dispatch. It does not yet provide
+  events, dense output, sensitivity analysis, or implicit stiff solvers.
+- Reference comparisons are part of the test suite where they add information;
+  they are not a claim that every routine is a line-for-line port.
 
 ## Root finding
 
@@ -99,29 +119,50 @@ answer:
 
 ## Ordinary differential equations
 
-`ode.mbt` walks a single equation `y'(t) = f(t, y)` from a starting value, and
-returns a `Trajectory`: the times it stopped at and the value at each, the
-first of them the starting point. A trajectory is read with `times()`,
-`values()`, `end_value()` and `length()`. Integration backwards is allowed —
-`t1` may be below `t0` — and the steps then have the sign of `t1 - t0`.
+`ode.mbt` keeps the original scalar API for `y'(t) = f(t, y)`: `euler`,
+`midpoint`, `rk4`, and adaptive Dormand-Prince `rk45`. `ode_system.mbt` adds
+the form needed by most real models, where the state is an `Array[Double]`.
+Both layers return a trajectory containing the times the solver stopped at
+and the value or state at each one. Integration backwards is allowed, and the
+steps then have the sign of `t1 - t0`.
 
 ```moonbit nocheck
 ///|
 let doubling = @numsolve.rk4(fn(_t, y) { y }, 1.0, 0.0, 1.0, 10) // 2.718279744135166
+
+///|
+// The harmonic oscillator y'' = -y, written as [position, velocity]' = [v, -y].
+let oscillator = @numsolve.solve_ivp(
+  fn(_t, y) { [y[1], -y[0]] },
+  [1.0, 0.0],
+  0.0,
+  6.283185307179586,
+  solver=@numsolve.OdeMethod::RK4,
+  steps=2000,
+)
 ```
 
-Four steppers, the first three of them told how many steps to take and the
-fourth told how accurate to be:
+| API | State | Step selection |
+| --- | --- | --- |
+| `euler`, `midpoint`, `rk4` | scalar `Double` | fixed number of equal steps |
+| `rk45` | scalar `Double` | adaptive Dormand-Prince 5(4) |
+| `*_system` counterparts | `Array[Double]` | fixed or adaptive, as above |
+| `solve_ivp` | `Array[Double]` | dispatches to `Euler`, `Midpoint`, `RK4`, or `RK45` |
+
+The scalar fixed-step methods remain the simplest entry point. `solve_ivp` is
+the recommended entry point for new code because it gives systems and scalar
+solvers a common shape without hiding the method choice. It is intentionally a
+small, familiar API, not a claim to cover SciPy's full `solve_ivp` feature set.
 
 | Stepper | Order | Evaluations per step | Error when the step halves |
 | --- | --- | --- | --- |
 | `euler` | 1 | 1 | ÷ 2 |
 | `midpoint` | 2 | 2 | ÷ 4 |
 | `rk4` | 4 | 4 | ÷ 16 |
-| `rk45` | 5, adaptive | 7 | set by the tolerance |
+| `rk45` | 5, adaptive | 7 | set by the tolerances |
 
 On `y' = y` from 1 over `[0, 1]`, where the answer is e, ten steps of each
-stepper give:
+fixed-step method give:
 
 | Stepper | Ten steps | Error |
 | --- | --- | --- |
@@ -130,38 +171,39 @@ stepper give:
 | `rk4` | 2.718279744135166 | 2.1e-6 |
 | `rk45` at 1e-8 | 2.7182818362088534 | 7.8e-9, in 11 steps and 77 evaluations |
 
-`euler` is here to be measured against rather than used. `rk4` is the default
-for an interval that can be stepped evenly: order four from four evaluations
-per step. `rk45` is Dormand-Prince 5(4)7M — seven evaluations produce both a
-fifth-order answer and a fourth-order one, their difference estimates the
-error of the step, and the step size of the next step is set from that
-estimate. The trajectory it returns is sampled where it chose to stop, which
-is neither even nor as many points: for the same error of about 8e-9 on
-`y' = y` it spends 77 evaluations where `rk4` needs forty steps and 160.
+`rk45` uses seven evaluations to produce both a fifth-order and a
+fourth-order answer; their difference estimates the error of the step. A step
+is accepted only when that estimate meets the tolerance, and the next step is
+sized from the same estimate. The scalar controller uses
+`|y5 - y4| / (1 + |y5|)`. The system controller uses the root-mean-square of
+the component errors after scaling each component by both tolerances:
+`atol + rtol * max(|y_old|, |y_new|)`. This is why a vector problem with one
+large and one near-zero component does not let either component dominate the
+step decision.
 
-The tolerance of `rk45` is not the tolerance of `roots.mbt`. It is the error a
-step is allowed, measured relative to the value as `|y5 - y4| / (1 + |y5|)`,
-and it must be positive — a tolerance of zero can never be met, and is refused
-here rather than read as "take a fixed number of steps":
+`tolerance`, `rtol`, and `atol` must be positive. The trajectory that comes
+back is sampled where the adaptive solver chose to stop, not at an evenly
+spaced grid. `max_evaluations` is a budget on calls to the right-hand side
+rather than on steps; every adaptive step costs seven evaluations. Running out
+of that budget raises instead of returning a trajectory that stops short of
+`t1`.
 
 | Variant | Payload | Raised when |
 | --- | --- | --- |
+| `EmptyState` | none | a vector system was given an empty initial state |
+| `DimensionMismatch(Int, Int)` | state dimension, derivative dimension | the right-hand side returned an array whose length does not match the state |
 | `NonPositiveSteps(Int)` | the step count | a fixed-step stepper was given zero steps or fewer |
-| `NonPositiveTolerance(Double)` | the tolerance | `rk45` was given a tolerance that is not positive |
-| `MaxEvaluations(Int)` | the budget | `rk45` spent its evaluations of `f` without reaching `t1` |
+| `NonPositiveTolerance(Double)` | the offending tolerance | an adaptive solver was given a tolerance that is not positive |
+| `MaxEvaluations(Int)` | the evaluation budget | an adaptive solver spent its budget without reaching `t1` |
 
-`max_evaluations` is a budget on calls to `f` rather than on steps, and each
-step costs seven of them; running out of it raises rather than returning a
-trajectory that stops short of `t1`.
+The tests assert the order each fixed-step method claims, the adaptive
+solver's tolerance behaviour, a two-dimensional oscillator with a known
+period, backward integration, dimension validation, and empty-state
+validation. The ODE tests are explicitly limited to the features implemented
+here: no event detection, dense output, or stiff/implicit methods are claimed.
 
-The tests measure the order each stepper claims — halving the step divides the
-error by 2, 4 and 16, measured at 1.92, 3.85 and 15.35 — and that the adaptive
-stepper meets the tolerance it is given rather than a fixed number of steps:
-the same run at 1e-4, 1e-6, 1e-8 and 1e-10 lands at errors of 1.9e-5, 5.6e-7,
-7.8e-9 and 8.7e-11, each under the tolerance asked for. A stiff equation,
-`y' = −1000y`, is walked to the end of the interval by spending steps where
-the solution moves, and a right-hand side that does not depend on `y` is
-integrated exactly, because there a Runge-Kutta step is a quadrature rule.
+A longer design note, including the ecosystem comparison and roadmap, is in
+[docs/ode.md](docs/ode.md).
 
 ## Linear systems
 
@@ -338,13 +380,14 @@ the library's own tests do.
 moon test
 ```
 
-66 tests, and every golden value in them was computed first with SciPy 1.18
-and NumPy 2.5 and then written down in full: SciPy's `brentq` on `x² − 2`
-returns 1.4142135623731364, which is what the test holds Brent to, and the
-convergence rates above are read off the iterates rather than assumed. The
-ODE goldens come from a model of the same arithmetic — the same step sizes,
-the same order of operations — so the adaptive stepper's eleven steps and 77
-evaluations are what the test asserts, not a range it is allowed to fall in.
+73 tests. Reference values were computed first with SciPy 1.18 and NumPy 2.5
+and then written down in full: SciPy's `brentq` on `x² − 2` returns
+1.4142135623731364, which is what the test holds Brent to, and the convergence
+rates above are read off the iterates rather than assumed. The ODE goldens
+come from a model of the same arithmetic — the same step sizes, the same order
+of operations — so the adaptive stepper's eleven steps and 77 evaluations are
+what the test asserts, not a range it is allowed to fall in. The vector ODE
+tests add analytic solutions and structural checks for the new system API.
 
 The package also carries benchmarks, run against the same functions:
 

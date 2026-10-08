@@ -38,12 +38,17 @@
 /// Integration backwards is allowed: `t1` may be below `t0`, and the steps
 /// then have the sign of `t1 - t0`.
 ///
-/// The steppers are scalar. A system of equations would be a `Double` holding
-/// a vector, and there is no such type here.
+/// The steppers in this file are scalar convenience APIs. Vector systems are
+/// provided by `ode_system.mbt`, including a common `solve_ivp` entry point.
 
 ///|
 /// A trajectory that could not be run, or that ran out of its budget.
 pub suberror OdeError {
+  /// A vector initial state was empty, so there is no system to integrate.
+  EmptyState
+  /// A right-hand side returned a derivative with the wrong length. The
+  /// payloads are the state dimension and the derivative dimension.
+  DimensionMismatch(Int, Int)
   /// The number of steps is not positive, so there is no trajectory to walk.
   /// The payload is that number. The fixed-step steppers take it as a required
   /// argument rather than a defaulted one: a protocol printed at a hundred
