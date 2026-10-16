@@ -223,12 +223,24 @@ let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
 | `LU::decompose` and `solve` | Gaussian elimination with partial pivoting, `P · A = L · U` | the matrix is general, and one factorization is reused for several right-hand sides |
 | `Cholesky::decompose` and `solve` | `A = L · Lᵀ`, no pivoting | the matrix is symmetric positive definite: half the work of an LU |
 | `solve_tridiagonal` | the Thomas recurrence over three diagonals | the matrix is tridiagonal — `O(n)` instead of `O(n³)` |
+| `residual_norm` | compensated residual `‖b − A·x‖∞` | a computed solution has to be judged, especially when `A` is ill-conditioned |
+| `LU::solve_refined` / `solve_linear_system_refined` | residual correction passes over one factorization | a direct solve needs another pass without refactoring |
 
 A decomposition is worth keeping when there is more than one right-hand side:
 `LU::solve_many` answers with a list of them after one factorization, and
 `LU::inverse` is that call with the identity. `LU::determinant` and
 `Cholesky::determinant` come from the diagonal of the factorization at no
 extra cost.
+
+The residual is computed with a compensated dot product rather than a plain
+matrix-vector multiply. That matters for the last few digits: on Hilbert 8 the
+plain residual is already close to the rounding floor, and a naive residual
+would be rounded to zero before it could be used as a correction. `solve_refined`
+uses that residual to solve `A·δ = r` with the existing factors and returns
+`x + δ`. It can reduce the residual further, but it does not promise a fixed
+number of correct digits in `x`: the forward error of a very ill-conditioned
+system remains bounded by its condition number and by the precision of the
+arithmetic.
 
 Pivoting is not an optimization here but the difference between an answer and
 a wrong one. On `[[0, 2], [3, 4]]` there is no answer at all without a row

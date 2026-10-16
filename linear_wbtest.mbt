@@ -501,3 +501,73 @@ test "a system of one row is a division" {
     linear_close_vector(solve_tridiagonal([], [4.0], [], [8.0]), [2.0], 0.0),
   )
 }
+
+///|
+/// A residual is a diagnostic, not a substitute for the condition number:
+/// on a well-conditioned system it is tiny, and an obviously wrong vector has
+/// a much larger one.
+test "a residual measures how well a system is solved" {
+  let a : Array[Array[Double]] = [[4.0, 1.0], [1.0, 3.0]]
+  let b : Array[Double] = [1.0, 2.0]
+  let decomposition = LU::decompose(a)
+  let exact = decomposition.solve(b)
+  let small = residual_norm(a, b, exact)
+  assert_true(small < 1.0e-15)
+  let wrong : Array[Double] = [exact[0] + 0.25, exact[1]]
+  assert_true(residual_norm(a, b, wrong) > small)
+}
+
+///|
+/// Iterative refinement uses the residual as a correction equation. On the
+/// Hilbert 8 system the residual is already near the last bit, and refinement
+/// must not make it larger; the forward error remains limited by the condition
+/// number, which is why the API documents the residual rather than promising
+/// digits that a double cannot recover.
+test "iterative refinement does not increase a converged residual" {
+  let size = 8
+  let hilbert : Array[Array[Double]] = Array(capacity=size)
+  let rhs : Array[Double] = Array(capacity=size)
+  let mut i = 0
+  while i < size {
+    let row : Array[Double] = Array(capacity=size)
+    let mut j = 0
+    while j < size {
+      row.push(1.0 / (i + j + 1).to_double())
+      j = j + 1
+    }
+    hilbert.push(row)
+    rhs.push(row.fold(init=0.0, fn(acc, value) { acc + value }))
+    i = i + 1
+  }
+  let decomposition = LU::decompose(hilbert)
+  let plain = decomposition.solve(rhs)
+  let refined = solve_linear_system_refined(hilbert, rhs, steps=3)
+  let plain_residual = residual_norm(hilbert, rhs, plain)
+  let refined_residual = residual_norm(hilbert, rhs, refined)
+  assert_true(refined_residual <= plain_residual + 1.0e-15)
+  assert_true(refined_residual <= 1.0e-15)
+}
+
+///|
+/// Refinement validates its own arguments: a run of no passes and a negative
+/// tolerance are refused with the values that were given.
+test "iterative refinement validates its arguments" {
+  let a : Array[Array[Double]] = [[2.0, 0.0], [0.0, 2.0]]
+  let failed = try {
+    let _ = solve_linear_system_refined(a, [1.0, 2.0], steps=0)
+    false
+  } catch {
+    LinError::NonPositiveRefinementSteps(steps) => steps == 0
+    _ => false
+  }
+  assert_true(failed)
+  let failed = try {
+    let _ = solve_linear_system(a, [1.0, 2.0]) catch { _ => [0.0, 0.0] }
+    let _ = solve_linear_system_refined(a, [1.0, 2.0], tolerance=-1.0)
+    false
+  } catch {
+    LinError::NonPositiveTolerance(value) => value == -1.0
+    _ => false
+  }
+  assert_true(failed)
+}

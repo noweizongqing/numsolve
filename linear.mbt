@@ -52,6 +52,12 @@ pub suberror LinError {
   /// is the index of the diagonal entry whose pivot came out zero or
   /// negative — the first one that did.
   NotPositiveDefinite(Int)
+  /// The number of iterative-refinement passes is not positive. The payload
+  /// is that number.
+  NonPositiveRefinementSteps(Int)
+  /// A tolerance passed to a numerical routine is negative. The payload is
+  /// the offending value.
+  NonPositiveTolerance(Double)
 }
 
 ///|
@@ -259,6 +265,177 @@ pub fn LU::solve_many(
     solutions.push(self.solve(b))
   }
   solutions
+}
+
+///|
+/// The exact-error transformation for the sum of two doubles: the first
+/// result is the rounded sum and the second is the part that rounding left
+/// out. Adding the two recovers the exact value when no overflow occurs.
+fn two_sum(a : Double, b : Double) -> (Double, Double) {
+  let sum = a + b
+  let b_virtual = sum - a
+  let a_virtual = sum - b_virtual
+  let b_roundoff = b - b_virtual
+  let a_roundoff = a - a_virtual
+  (sum, a_roundoff + b_roundoff)
+}
+
+///|
+/// The exact-error transformation for the product of two doubles, using
+/// Dekker splitting. The first result is the rounded product and the second
+/// is the rounding error.
+fn two_product(a : Double, b : Double) -> (Double, Double) {
+  let product = a * b
+  let splitter = 134217729.0
+  let a_split = splitter * a
+  let a_big = a_split - a
+  let a_high = a_split - a_big
+  let a_low = a - a_high
+  let b_split = splitter * b
+  let b_big = b_split - b
+  let b_high = b_split - b_big
+  let b_low = b - b_high
+  let error = a_high * b_high -
+    product +
+    a_high * b_low +
+    a_low * b_high +
+    a_low * b_low
+  (product, error)
+}
+
+///|
+/// A dot product with a compensated running sum. The first result is the
+/// rounded dot product and the second is the accumulated rounding error, so
+/// `sum + error` is accurate to roughly twice the precision of a plain dot
+/// product. This is what makes the residual in iterative refinement a useful
+/// correction equation rather than a value already rounded down to zero.
+fn compensated_dot(
+  left : Array[Double],
+  right : Array[Double],
+) -> (Double, Double) {
+  let mut sum = 0.0
+  let mut error = 0.0
+  let mut i = 0
+  while i < left.length() {
+    let (product, product_error) = two_product(left[i], right[i])
+    let (next_sum, sum_error) = two_sum(sum, product)
+    sum = next_sum
+    error = error + product_error + sum_error
+    i = i + 1
+  }
+  (sum, error)
+}
+
+///|
+/// The residual `b - A · x`, with the dimensions checked. The inner product is
+/// compensated, because a residual rounded to the last bit is not a useful
+/// correction right-hand side for an ill-conditioned system.
+fn residual_vector(
+  a : Array[Array[Double]],
+  b : Array[Double],
+  x : Array[Double],
+) -> Array[Double] raise LinError {
+  let size = checked_square(a)
+  let _ = checked_size(size, b)
+  let _ = checked_size(size, x)
+  let residual : Array[Double] = Array(capacity=size)
+  let mut i = 0
+  while i < size {
+    let (dot, dot_error) = compensated_dot(a[i], x)
+    residual.push(b[i] - dot - dot_error)
+    i = i + 1
+  }
+  residual
+}
+
+///|
+/// The infinity norm of the residual `b - A · x`.
+///
+/// This is a diagnostic for a computed solution, not a solver: a small
+/// residual says the equation is nearly satisfied, while the error in `x`
+/// also depends on the condition number of `A`. Iterative refinement uses the
+/// residual as a correction equation when a factored solve is not accurate
+/// enough on an ill-conditioned system.
+pub fn residual_norm(
+  a : Array[Array[Double]],
+  b : Array[Double],
+  x : Array[Double],
+) -> Double raise LinError {
+  let residual = residual_vector(a, b, x)
+  let mut largest = 0.0
+  let mut i = 0
+  while i < residual.length() {
+    let magnitude = residual[i].abs()
+    if magnitude > largest {
+      largest = magnitude
+    }
+    i = i + 1
+  }
+  largest
+}
+
+///|
+/// Solve `A · x = b` and then improve the answer with residual-based
+/// iterative refinement.
+///
+/// The factorization is computed once; each pass forms `r = b - A · x`,
+/// solves `A · δ = r` with the existing factors, and replaces `x` by
+/// `x + δ`. This is useful when an ill-conditioned direct solve has a small
+/// residual but a larger forward error, as the Hilbert systems in the tests
+/// show. The matrix passed here must be the matrix that was factored.
+///
+/// `steps` is the number of refinement passes. A positive `tolerance` stops
+/// early once the infinity norm of the residual is at or below it; zero runs
+/// every requested pass.
+pub fn LU::solve_refined(
+  self : LU,
+  a : Array[Array[Double]],
+  b : Array[Double],
+  steps? : Int = 2,
+  tolerance? : Double = 0.0,
+) -> Array[Double] raise LinError {
+  if steps <= 0 {
+    raise LinError::NonPositiveRefinementSteps(steps)
+  }
+  if tolerance < 0.0 {
+    raise LinError::NonPositiveTolerance(tolerance)
+  }
+  let size = checked_square(a)
+  if size != self.size() {
+    raise LinError::SizeMismatch(self.size(), size)
+  }
+  let _ = checked_size(size, b)
+  let x = self.solve(b)
+  if tolerance > 0.0 && residual_norm(a, b, x) <= tolerance {
+    return x
+  }
+  let mut pass = 0
+  while pass < steps {
+    let correction = self.solve(residual_vector(a, b, x))
+    let mut i = 0
+    while i < size {
+      x[i] = x[i] + correction[i]
+      i = i + 1
+    }
+    pass = pass + 1
+    if tolerance > 0.0 && residual_norm(a, b, x) <= tolerance {
+      break
+    }
+  }
+  x
+}
+
+///|
+/// Factor `A`, solve `A · x = b`, and apply iterative refinement. The
+/// one-call form of `LU::decompose` followed by `LU::solve_refined`.
+pub fn solve_linear_system_refined(
+  a : Array[Array[Double]],
+  b : Array[Double],
+  steps? : Int = 2,
+  tolerance? : Double = 0.0,
+) -> Array[Double] raise LinError {
+  let decomposition = LU::decompose(a)
+  decomposition.solve_refined(a, b, steps~, tolerance~)
 }
 
 ///|

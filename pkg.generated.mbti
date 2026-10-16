@@ -18,6 +18,8 @@ pub fn midpoint_system((Double, Array[Double]) -> Array[Double], Array[Double], 
 
 pub fn newton((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn residual_norm(Array[Array[Double]], Array[Double], Array[Double]) -> Double raise LinError
+
 pub fn rk4((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
 
 pub fn rk45((Double, Double) -> Double, Double, Double, Double, tolerance? : Double, max_evaluations? : Int) -> Trajectory raise OdeError
@@ -31,6 +33,8 @@ pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_itera
 pub fn solve_ivp((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, solver? : OdeMethod, steps? : Int, rtol? : Double, atol? : Double, max_evaluations? : Int) -> VectorTrajectory raise OdeError
 
 pub fn solve_linear_system(Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
+
+pub fn solve_linear_system_refined(Array[Array[Double]], Array[Double], steps? : Int, tolerance? : Double) -> Array[Double] raise LinError
 
 pub fn solve_tridiagonal(Array[Double], Array[Double], Array[Double], Array[Double]) -> Array[Double] raise LinError
 
@@ -47,6 +51,8 @@ pub suberror LinError {
   SizeMismatch(Int, Int)
   Singular(Int)
   NotPositiveDefinite(Int)
+  NonPositiveRefinementSteps(Int)
+  NonPositiveTolerance(Double)
 }
 
 pub suberror OdeError {
@@ -90,6 +96,7 @@ pub fn LU::inverse(Self) -> Array[Array[Double]] raise LinError
 pub fn LU::size(Self) -> Int
 pub fn LU::solve(Self, Array[Double]) -> Array[Double] raise LinError
 pub fn LU::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
+pub fn LU::solve_refined(Self, Array[Array[Double]], Array[Double], steps? : Int, tolerance? : Double) -> Array[Double] raise LinError
 
 pub struct LinearInterp {
   // private fields
