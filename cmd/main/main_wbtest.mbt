@@ -25,7 +25,7 @@ fn rooted(arguments : Array[String]) -> String {
 ///|
 /// The equation and step count of a command that is expected to be an ode
 /// demo.
-fn ode_command(arguments : Array[String]) -> (String, Int) {
+fn ode_command(arguments : Array[String]) -> (String, Int32) {
   match command(arguments) {
     Ode(subject, steps) => (subject, steps)
     Bad(message) => abort("expected an ode, not \{message}")

@@ -13,7 +13,7 @@
 /// What the command line asked for.
 priv enum Command {
   Root(String)
-  Ode(String, Int)
+  Ode(String, Int32)
   Spline(String)
   Solve(String)
   Help
@@ -51,7 +51,7 @@ fn usage() -> String {
 
 ///|
 /// The next argument after `index`, if there is one.
-fn following(arguments : Array[String], index : Int) -> String? {
+fn following(arguments : Array[String], index : Int32) -> String? {
   if index + 1 < arguments.length() {
     Some(arguments[index + 1])
   } else {
@@ -147,7 +147,7 @@ fn root_demo(name : String) -> Unit {
 ///|
 /// A trajectory of `y' = y` or `y' = -y` over `[0, 1]` from 1, by rk45 — or by
 /// rk4 with the number of steps given — against e or 1/e.
-fn ode_demo(name : String, steps : Int) -> Unit {
+fn ode_demo(name : String, steps : Int32) -> Unit {
   let rhs : (Double, Double) -> Double = match name {
     "growth" => fn(_t, y) { y }
     _ => fn(_t, y) { -y }

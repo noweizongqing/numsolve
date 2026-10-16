@@ -10,7 +10,7 @@
 
 ///|
 /// A vector of `size` zeros.
-fn iterative_zeros(size : Int) -> Array[Double] {
+fn iterative_zeros(size : Int32) -> Array[Double] {
   let values : Array[Double] = Array(capacity=size)
   let mut i = 0
   while i < size {
@@ -28,9 +28,9 @@ fn stationary_solve(
   a : Array[Array[Double]],
   b : Array[Double],
   tolerance : Double,
-  max_iterations : Int,
+  max_iterations : Int32,
   use_latest : Bool,
-) -> (Array[Double], Int) raise LinError {
+) -> (Array[Double], Int32) raise LinError {
   if tolerance <= 0.0 {
     raise LinError::NonPositiveTolerance(tolerance)
   }
@@ -110,8 +110,8 @@ fn stationary_solve(
 pub fn jacobi(
   a : Array[Array[Double]],
   b : Array[Double],
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 1000,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 1000,
 ) -> Array[Double] raise LinError {
   stationary_solve(a, b, tolerance, max_iterations, false).0
 }
@@ -126,8 +126,8 @@ pub fn jacobi(
 pub fn gauss_seidel(
   a : Array[Array[Double]],
   b : Array[Double],
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 1000,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 1000,
 ) -> Array[Double] raise LinError {
   stationary_solve(a, b, tolerance, max_iterations, true).0
 }
@@ -189,8 +189,8 @@ fn iterative_add_scaled(
 pub fn conjugate_gradient(
   a : Array[Array[Double]],
   b : Array[Double],
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 1000,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 1000,
 ) -> Array[Double] raise LinError {
   if tolerance <= 0.0 {
     raise LinError::NonPositiveTolerance(tolerance)
@@ -249,8 +249,8 @@ pub fn conjugate_gradient(
 pub fn preconditioned_conjugate_gradient(
   a : Array[Array[Double]],
   b : Array[Double],
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 1000,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 1000,
 ) -> Array[Double] raise LinError {
   if tolerance <= 0.0 {
     raise LinError::NonPositiveTolerance(tolerance)

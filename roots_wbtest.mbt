@@ -13,8 +13,8 @@ fn roots_plain_false_position(
   f : (Double) -> Double,
   a : Double,
   b : Double,
-  max_iterations : Int,
-) -> (Double, Int) {
+  max_iterations : Int32,
+) -> (Double, Int32) {
   let mut left = a
   let mut right = b
   let mut f_left = f(a)

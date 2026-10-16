@@ -43,13 +43,13 @@ pub fn VectorTrajectory::end_state(self : VectorTrajectory) -> Array[Double] {
 
 ///|
 /// The number of samples in the trajectory.
-pub fn VectorTrajectory::length(self : VectorTrajectory) -> Int {
+pub fn VectorTrajectory::length(self : VectorTrajectory) -> Int32 {
   self.times.length()
 }
 
 ///|
 /// The number of components in each state vector.
-pub fn VectorTrajectory::dimension(self : VectorTrajectory) -> Int {
+pub fn VectorTrajectory::dimension(self : VectorTrajectory) -> Int32 {
   self.states[0].length()
 }
 
@@ -127,7 +127,7 @@ fn integrate_system(
   y0 : Array[Double],
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
   step : (
     (Double, Array[Double]) -> Array[Double],
     Double,
@@ -170,7 +170,7 @@ pub fn euler_system(
   y0 : Array[Double],
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
 ) -> VectorTrajectory raise OdeError {
   integrate_system(f, y0, t0, t1, steps, fn(f, t, y, h) raise OdeError {
     vector_scale_add(y, h, evaluate_system(f, t, y))
@@ -185,7 +185,7 @@ pub fn midpoint_system(
   y0 : Array[Double],
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
 ) -> VectorTrajectory raise OdeError {
   integrate_system(f, y0, t0, t1, steps, fn(f, t, y, h) raise OdeError {
     let k1 = evaluate_system(f, t, y)
@@ -201,7 +201,7 @@ pub fn rk4_system(
   y0 : Array[Double],
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
 ) -> VectorTrajectory raise OdeError {
   integrate_system(f, y0, t0, t1, steps, fn(f, t, y, h) raise OdeError {
     let k1 = evaluate_system(f, t, y)
@@ -220,9 +220,9 @@ pub fn rk4_system(
 ///|
 /// The evaluations of a vector right-hand side a run is allowed.
 priv struct VectorEvaluationBudget {
-  mut spent : Int
-  limit : Int
-  dimension : Int
+  mut spent : Int32
+  limit : Int32
+  dimension : Int32
 }
 
 ///|
@@ -390,8 +390,8 @@ fn rk45_system_run(
   t1 : Double,
   rtol : Double,
   atol : Double,
-  max_evaluations : Int,
-) -> (VectorTrajectory, Int) raise OdeError {
+  max_evaluations : Int32,
+) -> (VectorTrajectory, Int32) raise OdeError {
   if y0.length() == 0 {
     raise OdeError::EmptyState
   }
@@ -454,9 +454,9 @@ pub fn rk45_system(
   y0 : Array[Double],
   t0 : Double,
   t1 : Double,
-  rtol? : Double = 1.0e-8,
-  atol? : Double = 1.0e-10,
-  max_evaluations? : Int = 100000,
+  rtol~ : Double = 1.0e-8,
+  atol~ : Double = 1.0e-10,
+  max_evaluations~ : Int32 = 100000,
 ) -> VectorTrajectory raise OdeError {
   rk45_system_run(f, y0, t0, t1, rtol, atol, max_evaluations).0
 }
@@ -473,11 +473,11 @@ pub fn solve_ivp(
   y0 : Array[Double],
   t0 : Double,
   t1 : Double,
-  solver? : OdeMethod = OdeMethod::RK45,
-  steps? : Int = 100,
-  rtol? : Double = 1.0e-8,
-  atol? : Double = 1.0e-10,
-  max_evaluations? : Int = 100000,
+  solver~ : OdeMethod = OdeMethod::RK45,
+  steps~ : Int32 = 100,
+  rtol~ : Double = 1.0e-8,
+  atol~ : Double = 1.0e-10,
+  max_evaluations~ : Int32 = 100000,
 ) -> VectorTrajectory raise OdeError {
   match solver {
     OdeMethod::Euler => euler_system(f, y0, t0, t1, steps)

@@ -13,7 +13,7 @@
 
 ///|
 /// A vector of `size` zeros.
-fn banded_zeros(size : Int) -> Array[Double] {
+fn banded_zeros(size : Int32) -> Array[Double] {
   let values : Array[Double] = Array(capacity=size)
   let mut i = 0
   while i < size {
@@ -28,9 +28,9 @@ fn banded_zeros(size : Int) -> Array[Double] {
 /// bandwidths.
 fn checked_banded(
   a : Array[Array[Double]],
-  lower_bandwidth : Int,
-  upper_bandwidth : Int,
-) -> Int raise LinError {
+  lower_bandwidth : Int32,
+  upper_bandwidth : Int32,
+) -> Int32 raise LinError {
   let size = checked_square(a)
   let mut row = 0
   while row < size {
@@ -66,8 +66,8 @@ fn checked_banded(
 /// that violates the declared structure would otherwise be solved with the
 /// wrong arithmetic assumptions.
 pub fn solve_banded(
-  lower_bandwidth : Int,
-  upper_bandwidth : Int,
+  lower_bandwidth : Int32,
+  upper_bandwidth : Int32,
   a : Array[Array[Double]],
   b : Array[Double],
 ) -> Array[Double] raise LinError {

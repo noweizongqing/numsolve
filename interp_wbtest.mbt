@@ -57,7 +57,7 @@ fn interp_spline(
 
 ///|
 /// Whether building a table raises `TooFewKnots` with `count` points.
-fn interp_too_few(f : () -> Unit raise InterpError, count : Int) -> Bool {
+fn interp_too_few(f : () -> Unit raise InterpError, count : Int32) -> Bool {
   try {
     f()
     false
@@ -71,8 +71,8 @@ fn interp_too_few(f : () -> Unit raise InterpError, count : Int) -> Bool {
 /// Whether building a table raises `UnevenLengths` with the two lengths.
 fn interp_uneven(
   f : () -> Unit raise InterpError,
-  knots : Int,
-  values : Int,
+  knots : Int32,
+  values : Int32,
 ) -> Bool {
   try {
     f()

@@ -39,9 +39,9 @@
 pub suberror InterpError {
   /// Fewer than two points were given: there is no interval to interpolate
   /// over. The payload is the number of points.
-  TooFewKnots(Int)
+  TooFewKnots(Int32)
   /// `xs` and `ys` are not the same length. The payloads are the two lengths.
-  UnevenLengths(Int, Int)
+  UnevenLengths(Int32, Int32)
   /// The knots are not in increasing order: a line or a spline through a table
   /// that doubles back is not a function of `x`. The payload is the first knot
   /// that is out of order.
@@ -56,7 +56,7 @@ pub suberror InterpError {
 fn checked_table(
   xs : Array[Double],
   ys : Array[Double],
-) -> Int raise InterpError {
+) -> Int32 raise InterpError {
   let size = xs.length()
   if size < 2 {
     raise InterpError::TooFewKnots(size)
@@ -81,7 +81,7 @@ fn checked_table(
 /// The index of the interval a point falls in: the largest `i` with
 /// `xs[i] <= x`, capped at the last interval so that the right endpoint
 /// belongs to the interval ending there.
-fn locate(xs : Array[Double], x : Double) -> Int {
+fn locate(xs : Array[Double], x : Double) -> Int32 {
   let mut low = 0
   let mut high = xs.length() - 1
   while low < high {
@@ -176,7 +176,7 @@ fn interval_widths(xs : Array[Double]) -> Array[Double] {
 /// Six times the change in slope across a knot — `6 · (s[i] - s[i-1])` for the
 /// slopes of the two intervals meeting there — which is the right-hand side of
 /// the equation that knot contributes.
-fn knot_rhs(ys : Array[Double], widths : Array[Double], knot : Int) -> Double {
+fn knot_rhs(ys : Array[Double], widths : Array[Double], knot : Int32) -> Double {
   6.0 *
   (
     (ys[knot + 1] - ys[knot]) / widths[knot] -

@@ -48,7 +48,7 @@ pub suberror RootError {
   NonPositiveTolerance(Double)
   /// The search took `max_iterations` steps without meeting its tolerance.
   /// The payload is that limit.
-  MaxIterations(Int)
+  MaxIterations(Int32)
 }
 
 ///|
@@ -73,8 +73,8 @@ fn bisection_run(
   a : Double,
   b : Double,
   tolerance : Double,
-  max_iterations : Int,
-) -> (Double, Int) raise RootError {
+  max_iterations : Int32,
+) -> (Double, Int32) raise RootError {
   if tolerance < 0.0 {
     raise RootError::NonPositiveTolerance(tolerance)
   }
@@ -135,8 +135,8 @@ pub fn bisection(
   f : (Double) -> Double,
   a : Double,
   b : Double,
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 100,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 100,
 ) -> Double raise RootError {
   bisection_run(f, a, b, tolerance, max_iterations).0
 }
@@ -159,8 +159,8 @@ fn false_position_run(
   a : Double,
   b : Double,
   tolerance : Double,
-  max_iterations : Int,
-) -> (Double, Int) raise RootError {
+  max_iterations : Int32,
+) -> (Double, Int32) raise RootError {
   if tolerance < 0.0 {
     raise RootError::NonPositiveTolerance(tolerance)
   }
@@ -234,8 +234,8 @@ pub fn false_position(
   f : (Double) -> Double,
   a : Double,
   b : Double,
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 100,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 100,
 ) -> Double raise RootError {
   false_position_run(f, a, b, tolerance, max_iterations).0
 }
@@ -255,8 +255,8 @@ fn secant_run(
   x0 : Double,
   x1 : Double,
   tolerance : Double,
-  max_iterations : Int,
-) -> (Double, Int) raise RootError {
+  max_iterations : Int32,
+) -> (Double, Int32) raise RootError {
   if tolerance < 0.0 {
     raise RootError::NonPositiveTolerance(tolerance)
   }
@@ -319,8 +319,8 @@ pub fn secant(
   f : (Double) -> Double,
   x0 : Double,
   x1 : Double,
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 100,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 100,
 ) -> Double raise RootError {
   secant_run(f, x0, x1, tolerance, max_iterations).0
 }
@@ -339,8 +339,8 @@ fn newton_run(
   df : (Double) -> Double,
   x0 : Double,
   tolerance : Double,
-  max_iterations : Int,
-) -> (Double, Int) raise RootError {
+  max_iterations : Int32,
+) -> (Double, Int32) raise RootError {
   if tolerance < 0.0 {
     raise RootError::NonPositiveTolerance(tolerance)
   }
@@ -383,8 +383,8 @@ pub fn newton(
   f : (Double) -> Double,
   df : (Double) -> Double,
   x0 : Double,
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 100,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 100,
 ) -> Double raise RootError {
   newton_run(f, df, x0, tolerance, max_iterations).0
 }
@@ -406,8 +406,8 @@ fn brent_run(
   a : Double,
   b : Double,
   tolerance : Double,
-  max_iterations : Int,
-) -> (Double, Int) raise RootError {
+  max_iterations : Int32,
+) -> (Double, Int32) raise RootError {
   if tolerance < 0.0 {
     raise RootError::NonPositiveTolerance(tolerance)
   }
@@ -545,8 +545,8 @@ pub fn brent(
   f : (Double) -> Double,
   a : Double,
   b : Double,
-  tolerance? : Double = 1.0e-10,
-  max_iterations? : Int = 100,
+  tolerance~ : Double = 1.0e-10,
+  max_iterations~ : Int32 = 100,
 ) -> Double raise RootError {
   brent_run(f, a, b, tolerance, max_iterations).0
 }

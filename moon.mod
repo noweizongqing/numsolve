@@ -1,6 +1,6 @@
 name = "noweizongqing/numsolve"
 
-version = "0.4.0"
+version = "0.4.1"
 
 repository = "https://github.com/noweizongqing/numsolve"
 

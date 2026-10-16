@@ -260,7 +260,7 @@ test "a stiff equation is still walked to the end" {
 /// says so with the number it was given rather than returning the starting
 /// point as if it had done something.
 test "a run of no steps is refused" {
-  let counts : Array[Int] = [0, -3]
+  let counts : Array[Int32] = [0, -3]
   for steps in counts {
     let failed = try {
       let _ = euler(ode_growth, 1.0, 0.0, 1.0, steps)

@@ -36,54 +36,54 @@ pub suberror LinError {
   /// The matrix is not square, or its rows are not all the same length. The
   /// payloads are the number of rows and the length of the first row. A
   /// matrix of no rows is square, and is solved by doing nothing.
-  NotSquare(Int, Int)
+  NotSquare(Int32, Int32)
   /// An array is not as long as the system needs it to be. The payloads are
   /// the length that was needed and the length that was given: the number of
   /// rows of the matrix against the length of a right-hand side, or `n - 1`
   /// against the length of a sub- or super-diagonal.
-  SizeMismatch(Int, Int)
+  SizeMismatch(Int32, Int32)
   /// A pivot came out exactly zero, and no row below it could be exchanged
   /// for it either: the matrix is singular and the system has no unique
   /// answer. The payload is the index of the column the elimination was in
   /// when it found this, which is also the last row that could have had a
   /// pivot.
-  Singular(Int)
+  Singular(Int32)
   /// Cholesky was given a matrix that is not positive definite. The payload
   /// is the index of the diagonal entry whose pivot came out zero or
   /// negative — the first one that did.
-  NotPositiveDefinite(Int)
+  NotPositiveDefinite(Int32)
   /// The number of iterative-refinement passes is not positive. The payload
   /// is that number.
-  NonPositiveRefinementSteps(Int)
+  NonPositiveRefinementSteps(Int32)
   /// A tolerance passed to a numerical routine is negative. The payload is
   /// the offending value.
   NonPositiveTolerance(Double)
   /// An iterative solver was given a non-positive iteration limit. The
   /// payload is that limit.
-  NonPositiveMaxIterations(Int)
+  NonPositiveMaxIterations(Int32)
   /// An iterative solver needed a diagonal entry that is zero, so the
   /// iteration formula has no denominator. The payload is the row index.
-  ZeroDiagonal(Int)
+  ZeroDiagonal(Int32)
   /// A stationary iterative solver exhausted its iteration budget without
   /// meeting the tolerance. The payloads are the iterations taken and the
   /// final infinity norm of the residual.
-  NoConvergence(Int, Double)
+  NoConvergence(Int32, Double)
   /// A conjugate-gradient iteration met a non-positive curvature
   /// `pᵀ·A·p`, which means the matrix is not positive definite or the
   /// iteration has broken down. The payload is the iteration index.
-  Breakdown(Int)
+  Breakdown(Int32)
   /// A bandwidth argument is negative. The payload is that argument.
-  InvalidBandwidth(Int)
+  InvalidBandwidth(Int32)
   /// A matrix passed to the banded solver has a non-zero entry outside the
   /// declared band. The payloads are the row and column of that entry.
-  NotBanded(Int, Int)
+  NotBanded(Int32, Int32)
 }
 
 ///|
 /// Whether every row of `a` is as long as the first one, and the matrix is
 /// therefore rectangular. Returns the number of columns, or raises with the
 /// number of rows and the length of the offending row.
-fn checked_columns(a : Array[Array[Double]]) -> Int raise LinError {
+fn checked_columns(a : Array[Array[Double]]) -> Int32 raise LinError {
   let rows = a.length()
   if rows == 0 {
     return 0
@@ -101,7 +101,7 @@ fn checked_columns(a : Array[Array[Double]]) -> Int raise LinError {
 
 ///|
 /// Whether `a` is square, and how wide it is.
-fn checked_square(a : Array[Array[Double]]) -> Int raise LinError {
+fn checked_square(a : Array[Array[Double]]) -> Int32 raise LinError {
   let rows = a.length()
   let columns = checked_columns(a)
   if rows != columns {
@@ -112,7 +112,7 @@ fn checked_square(a : Array[Array[Double]]) -> Int raise LinError {
 
 ///|
 /// A `rows` by `columns` matrix of zeros.
-fn zero_matrix(rows : Int, columns : Int) -> Array[Array[Double]] {
+fn zero_matrix(rows : Int32, columns : Int32) -> Array[Array[Double]] {
   let matrix : Array[Array[Double]] = Array(capacity=rows)
   let mut i = 0
   while i < rows {
@@ -144,7 +144,7 @@ fn copy_rows(a : Array[Array[Double]]) -> Array[Array[Double]] {
 
 ///|
 /// Whether `b` has one entry per row of the system, and the size it is.
-fn checked_size(rows : Int, b : Array[Double]) -> Int raise LinError {
+fn checked_size(rows : Int32, b : Array[Double]) -> Int32 raise LinError {
   if b.length() != rows {
     raise LinError::SizeMismatch(rows, b.length())
   }
@@ -165,8 +165,8 @@ fn checked_size(rows : Int, b : Array[Double]) -> Int raise LinError {
 /// `determinant` and `inverse`, which are the questions it answers.
 pub struct LU {
   priv factors : Array[Array[Double]]
-  priv pivots : Array[Int]
-  priv swaps : Int
+  priv pivots : Array[Int32]
+  priv swaps : Int32
 }
 
 ///|
@@ -182,7 +182,7 @@ pub struct LU {
 pub fn LU::decompose(a : Array[Array[Double]]) -> LU raise LinError {
   let size = checked_square(a)
   let factors = copy_rows(a)
-  let pivots : Array[Int] = Array(capacity=size)
+  let pivots : Array[Int32] = Array(capacity=size)
   let mut i = 0
   while i < size {
     pivots.push(i)
@@ -230,7 +230,7 @@ pub fn LU::decompose(a : Array[Array[Double]]) -> LU raise LinError {
 
 ///|
 /// How wide the factored system is.
-pub fn LU::size(self : LU) -> Int {
+pub fn LU::size(self : LU) -> Int32 {
   self.factors.length()
 }
 
@@ -410,8 +410,8 @@ pub fn LU::solve_refined(
   self : LU,
   a : Array[Array[Double]],
   b : Array[Double],
-  steps? : Int = 2,
-  tolerance? : Double = 0.0,
+  steps~ : Int32 = 2,
+  tolerance~ : Double = 0.0,
 ) -> Array[Double] raise LinError {
   if steps <= 0 {
     raise LinError::NonPositiveRefinementSteps(steps)
@@ -450,8 +450,8 @@ pub fn LU::solve_refined(
 pub fn solve_linear_system_refined(
   a : Array[Array[Double]],
   b : Array[Double],
-  steps? : Int = 2,
-  tolerance? : Double = 0.0,
+  steps~ : Int32 = 2,
+  tolerance~ : Double = 0.0,
 ) -> Array[Double] raise LinError {
   let decomposition = LU::decompose(a)
   decomposition.solve_refined(a, b, steps~, tolerance~)
@@ -629,7 +629,7 @@ pub fn Cholesky::decompose(a : Array[Array[Double]]) -> Cholesky raise LinError 
 
 ///|
 /// How wide the factored system is.
-pub fn Cholesky::size(self : Cholesky) -> Int {
+pub fn Cholesky::size(self : Cholesky) -> Int32 {
   self.lower.length()
 }
 

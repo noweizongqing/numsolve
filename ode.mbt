@@ -48,12 +48,12 @@ pub suberror OdeError {
   EmptyState
   /// A right-hand side returned a derivative with the wrong length. The
   /// payloads are the state dimension and the derivative dimension.
-  DimensionMismatch(Int, Int)
+  DimensionMismatch(Int32, Int32)
   /// The number of steps is not positive, so there is no trajectory to walk.
   /// The payload is that number. The fixed-step steppers take it as a required
   /// argument rather than a defaulted one: a protocol printed at a hundred
   /// points is a hundred, and there is nothing sensible to guess.
-  NonPositiveSteps(Int)
+  NonPositiveSteps(Int32)
   /// The tolerance is not positive. The payload is the tolerance. The
   /// fixed-step steppers take no tolerance and never raise this; the adaptive
   /// one refuses zero as well as a negative value, because a step is only
@@ -63,7 +63,7 @@ pub suberror OdeError {
   /// The adaptive stepper spent the evaluations it was allowed without
   /// reaching `t1`. The payload is that budget. A step costs one evaluation
   /// per stage and there are seven stages, so a budget is spent in sevens.
-  MaxEvaluations(Int)
+  MaxEvaluations(Int32)
 }
 
 ///|
@@ -101,7 +101,7 @@ pub fn Trajectory::end_value(self : Trajectory) -> Double {
 ///|
 /// How many samples the trajectory holds: one more than the number of steps
 /// taken.
-pub fn Trajectory::length(self : Trajectory) -> Int {
+pub fn Trajectory::length(self : Trajectory) -> Int32 {
   self.times.length()
 }
 
@@ -126,7 +126,7 @@ fn integrate(
   y0 : Double,
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
   step : ((Double, Double) -> Double, Double, Double, Double) -> Double,
 ) -> Trajectory raise OdeError {
   if steps <= 0 {
@@ -160,7 +160,7 @@ pub fn euler(
   y0 : Double,
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
 ) -> Trajectory raise OdeError {
   integrate(f, y0, t0, t1, steps, fn(f, t, y, h) { y + h * f(t, y) })
 }
@@ -177,7 +177,7 @@ pub fn midpoint(
   y0 : Double,
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
 ) -> Trajectory raise OdeError {
   integrate(f, y0, t0, t1, steps, fn(f, t, y, h) {
     let k1 = f(t, y)
@@ -199,7 +199,7 @@ pub fn rk4(
   y0 : Double,
   t0 : Double,
   t1 : Double,
-  steps : Int,
+  steps : Int32,
 ) -> Trajectory raise OdeError {
   integrate(f, y0, t0, t1, steps, fn(f, t, y, h) {
     let k1 = f(t, y)
@@ -217,8 +217,8 @@ pub fn rk4(
 /// that a run which cannot finish stops where the budget ran out and not a
 /// step later.
 priv struct EvaluationBudget {
-  mut spent : Int
-  limit : Int
+  mut spent : Int32
+  limit : Int32
 }
 
 ///|
@@ -347,8 +347,8 @@ fn rk45_run(
   t0 : Double,
   t1 : Double,
   tolerance : Double,
-  max_evaluations : Int,
-) -> (Trajectory, Int) raise OdeError {
+  max_evaluations : Int32,
+) -> (Trajectory, Int32) raise OdeError {
   if tolerance <= 0.0 {
     raise OdeError::NonPositiveTolerance(tolerance)
   }
@@ -420,8 +420,8 @@ pub fn rk45(
   y0 : Double,
   t0 : Double,
   t1 : Double,
-  tolerance? : Double = 1.0e-8,
-  max_evaluations? : Int = 100000,
+  tolerance~ : Double = 1.0e-8,
+  max_evaluations~ : Int32 = 100000,
 ) -> Trajectory raise OdeError {
   rk45_run(f, y0, t0, t1, tolerance, max_evaluations).0
 }
