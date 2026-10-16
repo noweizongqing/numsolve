@@ -280,6 +280,19 @@ order of summation inside the same algorithm cannot fail it.
 | `ZeroDiagonal(Int)` | the row | Jacobi or Gauss-Seidel met a zero diagonal entry |
 | `NoConvergence(Int, Double)` | iterations, residual norm | an iterative solve exhausted its budget without meeting the tolerance |
 
+### Relationship to `mizchi/numbt`
+
+`mizchi/numbt` already provides native BLAS/LAPACK-backed dense solves
+through `fmat_solve` and related functions. `numsolve` overlaps with that
+basic operation, and says so explicitly rather than claiming a new dense
+solver. The extension boundary is different: `numsolve` is pure MoonBit,
+uses `Double`, is designed for portable/Wasm use, returns reusable `LU` and
+`Cholesky` factors, adds multiple-right-hand-side and transpose solves,
+provides compensated residual diagnostics and iterative refinement, adds
+Jacobi/Gauss-Seidel iterations, and keeps the O(n) tridiagonal path that the
+spline module depends on. The full comparison, interoperation guidance, and
+non-goals are in [docs/linear.md](docs/linear.md).
+
 ## Interpolation
 
 `interp.mbt` draws a curve through a table of points — two arrays, `xs` and
