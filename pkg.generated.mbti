@@ -85,6 +85,7 @@ pub fn Cholesky::decompose(Array[Array[Double]]) -> Self raise LinError
 pub fn Cholesky::determinant(Self) -> Double
 pub fn Cholesky::size(Self) -> Int
 pub fn Cholesky::solve(Self, Array[Double]) -> Array[Double] raise LinError
+pub fn Cholesky::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
 
 pub struct CubicSpline {
   // private fields
@@ -104,6 +105,7 @@ pub fn LU::size(Self) -> Int
 pub fn LU::solve(Self, Array[Double]) -> Array[Double] raise LinError
 pub fn LU::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
 pub fn LU::solve_refined(Self, Array[Array[Double]], Array[Double], steps? : Int, tolerance? : Double) -> Array[Double] raise LinError
+pub fn LU::solve_transposed(Self, Array[Double]) -> Array[Double] raise LinError
 
 pub struct LinearInterp {
   // private fields

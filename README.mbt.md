@@ -220,8 +220,8 @@ let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
 
 | Function | Method | Use it when |
 | --- | --- | --- |
-| `LU::decompose` and `solve` | Gaussian elimination with partial pivoting, `P · A = L · U` | the matrix is general, and one factorization is reused for several right-hand sides |
-| `Cholesky::decompose` and `solve` | `A = L · Lᵀ`, no pivoting | the matrix is symmetric positive definite: half the work of an LU |
+| `LU::decompose` and `solve` / `solve_many` / `solve_transposed` | Gaussian elimination with partial pivoting, `P · A = L · U` | the matrix is general, and one factorization is reused for several right-hand sides or the transpose |
+| `Cholesky::decompose` and `solve` / `solve_many` | `A = L · Lᵀ`, no pivoting | the matrix is symmetric positive definite: half the work of an LU |
 | `solve_tridiagonal` | the Thomas recurrence over three diagonals | the matrix is tridiagonal — `O(n)` instead of `O(n³)` |
 | `residual_norm` | compensated residual `‖b − A·x‖∞` | a computed solution has to be judged, especially when `A` is ill-conditioned |
 | `LU::solve_refined` / `solve_linear_system_refined` | residual correction passes over one factorization | a direct solve needs another pass without refactoring |
@@ -229,9 +229,11 @@ let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
 
 A decomposition is worth keeping when there is more than one right-hand side:
 `LU::solve_many` answers with a list of them after one factorization, and
-`LU::inverse` is that call with the identity. `LU::determinant` and
-`Cholesky::determinant` come from the diagonal of the factorization at no
-extra cost.
+`LU::inverse` is that call with the identity. `LU::solve_transposed` answers
+`Aᵀ · x = b` from the factors of `A` instead of factoring the transpose, and
+`Cholesky::solve_many` is the plural form of the symmetric solve.
+`LU::determinant` and `Cholesky::determinant` come from the diagonal of the
+factorization at no extra cost.
 
 `jacobi` and `gauss_seidel` are the iterative alternatives: they use only
 matrix-vector products, need no factorization, and can stop as soon as the

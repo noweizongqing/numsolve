@@ -571,3 +571,42 @@ test "iterative refinement validates its arguments" {
   }
   assert_true(failed)
 }
+
+///|
+/// A transpose solve uses the factors of `A` rather than a second
+/// factorization of `Aᵀ`, and returns the same answer.
+test "an LU transpose solve reuses the factorization" {
+  let a = linear_sample_matrix()
+  let expected : Array[Double] = [0.5, -1.0, 2.0]
+  let rhs : Array[Double] = [
+    a[0][0] * expected[0] + a[1][0] * expected[1] + a[2][0] * expected[2],
+    a[0][1] * expected[0] + a[1][1] * expected[1] + a[2][1] * expected[2],
+    a[0][2] * expected[0] + a[1][2] * expected[1] + a[2][2] * expected[2],
+  ]
+  let decomposition = LU::decompose(a)
+  assert_true(
+    linear_close_vector(decomposition.solve_transposed(rhs), expected, 1.0e-12),
+  )
+  let failed = try {
+    let _ = decomposition.solve_transposed([1.0, 2.0])
+    false
+  } catch {
+    LinError::SizeMismatch(needed, given) => needed == 3 && given == 2
+    _ => false
+  }
+  assert_true(failed)
+}
+
+///|
+/// A Cholesky decomposition can answer several right-hand sides after one
+/// factorization, the same way the LU decomposition can.
+test "a Cholesky solve with many right-hand sides" {
+  let symmetric : Array[Array[Double]] = [[4.0, 2.0], [2.0, 3.0]]
+  let decomposition = Cholesky::decompose(symmetric)
+  let solutions = decomposition.solve_many([[6.0, 5.0], [2.0, 1.0]])
+  assert_true(linear_close_vector(solutions[0], [1.0, 1.0], 1.0e-14))
+  assert_true(linear_close_vector(solutions[1], [0.5, 0.0], 1.0e-14))
+  assert_true(
+    linear_close_vector(solutions[0], decomposition.solve([6.0, 5.0]), 1.0e-14),
+  )
+}

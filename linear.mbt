@@ -449,6 +449,62 @@ pub fn solve_linear_system_refined(
 }
 
 ///|
+/// Solve `Aᵀ · x = b` with the factors of `A`, which is what a caller wants
+/// when the transpose is the system of interest and refactoring `Aᵀ` would be
+/// wasted work.
+///
+/// From `P · A = L · U` the transpose is `Aᵀ = Uᵀ · Lᵀ · P`. The solve
+/// substitutes through `Uᵀ` forward, through `Lᵀ` backward, and then undoes
+/// the row permutation. The factorization is not modified.
+pub fn LU::solve_transposed(
+  self : LU,
+  b : Array[Double],
+) -> Array[Double] raise LinError {
+  let size = checked_size(self.size(), b)
+  let z : Array[Double] = Array(capacity=size)
+  let mut i = 0
+  while i < size {
+    let mut acc = b[i]
+    let mut j = 0
+    while j < i {
+      acc = acc - self.factors[j][i] * z[j]
+      j = j + 1
+    }
+    z.push(acc / self.factors[i][i])
+    i = i + 1
+  }
+  let y : Array[Double] = Array(capacity=size)
+  let mut k = 0
+  while k < size {
+    y.push(0.0)
+    k = k + 1
+  }
+  let mut row = size - 1
+  while row >= 0 {
+    let mut acc = z[row]
+    let mut j = row + 1
+    while j < size {
+      acc = acc - self.factors[j][row] * y[j]
+      j = j + 1
+    }
+    y[row] = acc
+    row = row - 1
+  }
+  let x : Array[Double] = Array(capacity=size)
+  let mut index = 0
+  while index < size {
+    x.push(0.0)
+    index = index + 1
+  }
+  index = 0
+  while index < size {
+    x[self.pivots[index]] = y[index]
+    index = index + 1
+  }
+  x
+}
+
+///|
 /// The determinant, as the product of the diagonal of `U` with the sign the
 /// row exchanges gave it. A singular matrix never gets this far: its
 /// decomposition raises.
@@ -606,6 +662,22 @@ pub fn Cholesky::solve(
     row = row - 1
   }
   x
+}
+
+///|
+/// Solve `A · X = B` once for each right-hand side, reusing the factor.
+/// The Cholesky factor is read by `solve`; this is the plural form of the
+/// same operation, useful when a model is evaluated against several loads or
+/// initial conditions.
+pub fn Cholesky::solve_many(
+  self : Cholesky,
+  bs : Array[Array[Double]],
+) -> Array[Array[Double]] raise LinError {
+  let solutions : Array[Array[Double]] = Array(capacity=bs.length())
+  for b in bs {
+    solutions.push(self.solve(b))
+  }
+  solutions
 }
 
 ///|
