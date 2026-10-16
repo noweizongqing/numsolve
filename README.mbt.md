@@ -223,6 +223,7 @@ let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
 | `LU::decompose` and `solve` / `solve_many` / `solve_transposed` | Gaussian elimination with partial pivoting, `P · A = L · U` | the matrix is general, and one factorization is reused for several right-hand sides or the transpose |
 | `Cholesky::decompose` and `solve` / `solve_many` | `A = L · Lᵀ`, no pivoting | the matrix is symmetric positive definite: half the work of an LU |
 | `solve_tridiagonal` | the Thomas recurrence over three diagonals | the matrix is tridiagonal — `O(n)` instead of `O(n³)` |
+| `solve_banded` | banded elimination with pivoting inside the lower bandwidth | the matrix has a declared `p`/`q` bandwidth — `O(n·(p+q)²)` instead of `O(n³)` |
 | `residual_norm` | compensated residual `‖b − A·x‖∞` | a computed solution has to be judged, especially when `A` is ill-conditioned |
 | `LU::solve_refined` / `solve_linear_system_refined` | residual correction passes over one factorization | a direct solve needs another pass without refactoring |
 | `jacobi` / `gauss_seidel` | stationary iterations using only matrix-vector products | the system is large or diagonally dominant and a factorization is not wanted |
@@ -235,6 +236,12 @@ A decomposition is worth keeping when there is more than one right-hand side:
 `Cholesky::solve_many` is the plural form of the symmetric solve.
 `LU::determinant` and `Cholesky::determinant` come from the diagonal of the
 factorization at no extra cost.
+
+`solve_banded` generalizes the structured solve to `p` sub-diagonals and
+`q` super-diagonals. It validates that the dense input has no non-zero entry
+outside the declared band, then limits pivot search and elimination to the
+band and its fill-in. A matrix that violates its declared structure raises
+`NotBanded` instead of being solved with the wrong assumption.
 
 `jacobi` and `gauss_seidel` are the stationary iterative alternatives: they
 use only matrix-vector products, need no factorization, and can stop as soon
@@ -289,6 +296,8 @@ order of summation inside the same algorithm cannot fail it.
 | `ZeroDiagonal(Int)` | the row | Jacobi or Gauss-Seidel met a zero diagonal entry |
 | `NoConvergence(Int, Double)` | iterations, residual norm | an iterative solve exhausted its budget without meeting the tolerance |
 | `Breakdown(Int)` | the iteration | conjugate gradient met a non-positive `pᵀ·A·p`, so the matrix is not positive definite or the iteration broke down |
+| `InvalidBandwidth(Int)` | the bandwidth | the banded solver was given a negative bandwidth |
+| `NotBanded(Int, Int)` | row, column | the dense matrix has a non-zero entry outside its declared band |
 
 ### Relationship to `mizchi/numbt`
 

@@ -38,6 +38,8 @@ pub fn rk4_system((Double, Array[Double]) -> Array[Double], Array[Double], Doubl
 
 pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn solve_banded(Int, Int, Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
+
 pub fn solve_ivp((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, solver? : OdeMethod, steps? : Int, rtol? : Double, atol? : Double, max_evaluations? : Int) -> VectorTrajectory raise OdeError
 
 pub fn solve_linear_system(Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
@@ -65,6 +67,8 @@ pub suberror LinError {
   ZeroDiagonal(Int)
   NoConvergence(Int, Double)
   Breakdown(Int)
+  InvalidBandwidth(Int)
+  NotBanded(Int, Int)
 }
 
 pub suberror OdeError {

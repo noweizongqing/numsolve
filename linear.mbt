@@ -72,6 +72,11 @@ pub suberror LinError {
   /// `pᵀ·A·p`, which means the matrix is not positive definite or the
   /// iteration has broken down. The payload is the iteration index.
   Breakdown(Int)
+  /// A bandwidth argument is negative. The payload is that argument.
+  InvalidBandwidth(Int)
+  /// A matrix passed to the banded solver has a non-zero entry outside the
+  /// declared band. The payloads are the row and column of that entry.
+  NotBanded(Int, Int)
 }
 
 ///|

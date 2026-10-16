@@ -16,8 +16,9 @@
 ///   factorization with partial pivoting and reusable transpose/multiple
 ///   solves, a `Cholesky` factorization for symmetric positive definite
 ///   matrices, compensated residual diagnostics and iterative refinement, the
-///   Thomas recurrence for tridiagonal systems, and Jacobi/Gauss-Seidel
-///   iterations for diagonally dominant systems.
+///   Thomas recurrence for tridiagonal systems, a general banded solver,
+///   Jacobi/Gauss-Seidel iterations, and conjugate-gradient methods for SPD
+///   systems.
 /// * interpolation (`interp.mbt`) - a line and a cubic spline through a table
 ///   of points, the spline under a natural, clamped or not-a-knot boundary.
 ///

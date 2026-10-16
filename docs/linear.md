@@ -26,7 +26,7 @@ the basic question "solve `A · x = b`"; this document explains where
 | Residual diagnostics | Not exposed at the pure MoonBit layer | `residual_norm` uses a compensated inner product |
 | Iterative refinement | Not exposed | `LU::solve_refined` reuses the factor and a compensated residual |
 | Iterative solvers | Direct LAPACK methods | `jacobi`, `gauss_seidel`, and conjugate-gradient methods |
-| Structured tridiagonal systems | Caller uses a dense solve | `solve_tridiagonal` is O(n) and is reused by the spline module |
+| Structured banded systems | Caller uses a dense solve | `solve_banded` for general bandwidths, `solve_tridiagonal` in O(n) for the tridiagonal case used by the spline module |
 | Error reporting | LAPACK status translated to `Bool` / option values | Explicit `LinError` variants with the failing index, size, tolerance, or residual |
 
 The boundary is therefore not "numbt versus numsolve" but "accelerated native
@@ -73,13 +73,15 @@ residual history rather than updating one component at a time. A non-positive
 curvature is reported as `Breakdown`, which distinguishes an indefinite or
 non-symmetric matrix from a run that merely needs more iterations.
 
-### Tridiagonal structure
+### Banded and tridiagonal structure
 
 `solve_tridiagonal` implements the Thomas algorithm in O(n), and the cubic
-spline module uses it directly. A dense LAPACK solve can solve the same
-system, but it does not preserve the structure or the linear complexity, and
-it cannot be used by the Wasm build of the spline module without the native
-dependency.
+spline module uses it directly. `solve_banded` generalizes the same idea to
+`p` sub-diagonals and `q` super-diagonals, with partial pivoting restricted to
+the lower bandwidth and elimination restricted to the band and its fill-in.
+A dense LAPACK solve can solve the same system, but it does not preserve the
+structure or the reduced complexity, and the tridiagonal path cannot be used
+by the Wasm build of the spline module without the native dependency.
 
 ## Interoperation, not replacement
 
@@ -106,7 +108,7 @@ The linear tests cover:
 
 - partial pivoting against an elimination without row exchanges;
 - reusable `solve_many`, transpose solve, determinant, and inverse;
-- Cholesky, tridiagonal, residual, and refinement behavior;
+- Cholesky, tridiagonal, general banded, residual, and refinement behavior;
 - Jacobi and Gauss-Seidel on a diagonally dominant system;
 - conjugate gradient and Jacobi-preconditioned conjugate gradient on an SPD system;
 - zero diagonal, tolerance, iteration-limit, and no-convergence errors;
