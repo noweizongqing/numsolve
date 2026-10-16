@@ -440,7 +440,7 @@ the library's own tests do.
 moon test
 ```
 
-84 tests. Reference values were computed first with SciPy 1.18 and NumPy 2.5
+93 tests. Reference values were computed first with SciPy 1.18 and NumPy 2.5
 and then written down in full: SciPy's `brentq` on `x² − 2` returns
 1.4142135623731364, which is what the test holds Brent to, and the convergence
 rates above are read off the iterates rather than assumed. The ODE goldens
@@ -449,7 +449,8 @@ of operations — so the adaptive stepper's eleven steps and 77 evaluations are
 what the test asserts, not a range it is allowed to fall in. The vector ODE
 tests add analytic solutions and structural checks for the new system API. The
 linear tests add compensated residuals, iterative refinement, transpose and
-multiple-right-hand-side solves, and Jacobi/Gauss-Seidel convergence checks.
+multiple-right-hand-side solves, Jacobi/Gauss-Seidel and conjugate-gradient
+convergence checks, and general banded elimination.
 
 The package also carries benchmarks, run against the same functions:
 

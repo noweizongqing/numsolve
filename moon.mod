@@ -1,6 +1,6 @@
 name = "noweizongqing/numsolve"
 
-version = "0.3.0"
+version = "0.4.0"
 
 repository = "https://github.com/noweizongqing/numsolve"
 
@@ -18,6 +18,7 @@ keywords = [
   "linear-algebra",
   "linear-solvers",
   "iterative-solvers",
+  "banded-solvers",
   "interpolation",
   "spline",
   "scientific-computing",
@@ -25,4 +26,4 @@ keywords = [
 
 preferred_target = "wasm"
 
-description = "Pure MoonBit numerical solvers with scalar/vector ODEs, direct and iterative linear systems, root finding, and interpolation"
+description = "Pure MoonBit numerical solvers with ODEs, direct/iterative/banded linear systems, root finding, and interpolation"
