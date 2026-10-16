@@ -6,6 +6,8 @@ pub fn bisection((Double) -> Double, Double, Double, tolerance? : Double, max_it
 
 pub fn brent((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn conjugate_gradient(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+
 pub fn euler((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
 
 pub fn euler_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
@@ -21,6 +23,8 @@ pub fn midpoint((Double, Double) -> Double, Double, Double, Double, Int) -> Traj
 pub fn midpoint_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
 
 pub fn newton((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+
+pub fn preconditioned_conjugate_gradient(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
 
 pub fn residual_norm(Array[Array[Double]], Array[Double], Array[Double]) -> Double raise LinError
 
@@ -60,6 +64,7 @@ pub suberror LinError {
   NonPositiveMaxIterations(Int)
   ZeroDiagonal(Int)
   NoConvergence(Int, Double)
+  Breakdown(Int)
 }
 
 pub suberror OdeError {

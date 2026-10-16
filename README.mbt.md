@@ -226,6 +226,7 @@ let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
 | `residual_norm` | compensated residual `‖b − A·x‖∞` | a computed solution has to be judged, especially when `A` is ill-conditioned |
 | `LU::solve_refined` / `solve_linear_system_refined` | residual correction passes over one factorization | a direct solve needs another pass without refactoring |
 | `jacobi` / `gauss_seidel` | stationary iterations using only matrix-vector products | the system is large or diagonally dominant and a factorization is not wanted |
+| `conjugate_gradient` / `preconditioned_conjugate_gradient` | Krylov iterations for symmetric positive definite systems | the matrix is SPD and a factorization is not wanted |
 
 A decomposition is worth keeping when there is more than one right-hand side:
 `LU::solve_many` answers with a list of them after one factorization, and
@@ -235,13 +236,21 @@ A decomposition is worth keeping when there is more than one right-hand side:
 `LU::determinant` and `Cholesky::determinant` come from the diagonal of the
 factorization at no extra cost.
 
-`jacobi` and `gauss_seidel` are the iterative alternatives: they use only
-matrix-vector products, need no factorization, and can stop as soon as the
-residual meets a tolerance. They are not unconditional solvers: the diagonal
-must be non-zero, the iteration has to converge, and a run that exhausts its
-budget raises `NoConvergence`. On the same diagonally dominant system,
-Gauss-Seidel usually takes fewer iterations because it uses each component as
-soon as it is updated.
+`jacobi` and `gauss_seidel` are the stationary iterative alternatives: they
+use only matrix-vector products, need no factorization, and can stop as soon
+as the residual meets a tolerance. They are not unconditional solvers: the
+diagonal must be non-zero, the iteration has to converge, and a run that
+exhausts its budget raises `NoConvergence`. On the same diagonally dominant
+system, Gauss-Seidel usually takes fewer iterations because it uses each
+component as soon as it is updated.
+
+`conjugate_gradient` adds a Krylov method for symmetric positive definite
+systems. It also uses matrix-vector products, but chooses each search
+direction so that the residual decreases in the A-norm. The
+Jacobi-preconditioned variant divides by the diagonal before each inner
+product, which often reduces the iteration count when the diagonal varies
+widely. A non-positive curvature means the matrix is not SPD or the iteration
+has broken down, and is raised as `Breakdown`.
 
 The residual is computed with a compensated dot product rather than a plain
 matrix-vector multiply. That matters for the last few digits: on Hilbert 8 the
@@ -279,6 +288,7 @@ order of summation inside the same algorithm cannot fail it.
 | `NonPositiveMaxIterations(Int)` | the limit | an iterative solve was given zero iterations or fewer |
 | `ZeroDiagonal(Int)` | the row | Jacobi or Gauss-Seidel met a zero diagonal entry |
 | `NoConvergence(Int, Double)` | iterations, residual norm | an iterative solve exhausted its budget without meeting the tolerance |
+| `Breakdown(Int)` | the iteration | conjugate gradient met a non-positive `pᵀ·A·p`, so the matrix is not positive definite or the iteration broke down |
 
 ### Relationship to `mizchi/numbt`
 

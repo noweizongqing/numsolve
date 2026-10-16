@@ -68,6 +68,10 @@ pub suberror LinError {
   /// meeting the tolerance. The payloads are the iterations taken and the
   /// final infinity norm of the residual.
   NoConvergence(Int, Double)
+  /// A conjugate-gradient iteration met a non-positive curvature
+  /// `pᵀ·A·p`, which means the matrix is not positive definite or the
+  /// iteration has broken down. The payload is the iteration index.
+  Breakdown(Int)
 }
 
 ///|

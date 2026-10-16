@@ -99,3 +99,63 @@ test "an empty iterative system is already solved" {
   assert_eq(jacobi([], []).length(), 0)
   assert_eq(gauss_seidel([], []).length(), 0)
 }
+
+///|
+test "conjugate gradient solves an SPD system and a preconditioned one" {
+  let a = iterative_sample_matrix()
+  let b = iterative_sample_rhs()
+  let expected : Array[Double] = [1.0, 2.0, 3.0]
+  let plain = conjugate_gradient(a, b, tolerance=1.0e-12, max_iterations=20)
+  let preconditioned = preconditioned_conjugate_gradient(
+    a,
+    b,
+    tolerance=1.0e-12,
+    max_iterations=20,
+  )
+  assert_true(linear_close_vector(plain, expected, 1.0e-9))
+  assert_true(linear_close_vector(preconditioned, expected, 1.0e-9))
+}
+
+///|
+test "a non-positive curvature stops conjugate gradient" {
+  let failed = try {
+    let _ = conjugate_gradient(
+      [[1.0, 0.0], [0.0, -1.0]],
+      [1.0, 1.0],
+      max_iterations=10,
+    )
+    false
+  } catch {
+    LinError::Breakdown(iteration) => iteration == 0
+    _ => false
+  }
+  assert_true(failed)
+}
+
+///|
+test "conjugate gradient validates tolerance and iteration limits" {
+  let a = iterative_sample_matrix()
+  let b = iterative_sample_rhs()
+  let failed = try {
+    let _ = conjugate_gradient(a, b, tolerance=-1.0)
+    false
+  } catch {
+    LinError::NonPositiveTolerance(value) => value == -1.0
+    _ => false
+  }
+  assert_true(failed)
+  let failed = try {
+    let _ = preconditioned_conjugate_gradient(a, b, max_iterations=0)
+    false
+  } catch {
+    LinError::NonPositiveMaxIterations(limit) => limit == 0
+    _ => false
+  }
+  assert_true(failed)
+}
+
+///|
+test "an empty conjugate-gradient system is already solved" {
+  assert_eq(conjugate_gradient([], []).length(), 0)
+  assert_eq(preconditioned_conjugate_gradient([], []).length(), 0)
+}

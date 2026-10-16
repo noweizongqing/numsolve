@@ -25,7 +25,7 @@ the basic question "solve `A · x = b`"; this document explains where
 | Transposed system | Caller must arrange storage or refactor | `LU::solve_transposed` reuses the same factors |
 | Residual diagnostics | Not exposed at the pure MoonBit layer | `residual_norm` uses a compensated inner product |
 | Iterative refinement | Not exposed | `LU::solve_refined` reuses the factor and a compensated residual |
-| Iterative solvers | Direct LAPACK methods | `jacobi` and `gauss_seidel` for diagonally dominant systems |
+| Iterative solvers | Direct LAPACK methods | `jacobi`, `gauss_seidel`, and conjugate-gradient methods |
 | Structured tridiagonal systems | Caller uses a dense solve | `solve_tridiagonal` is O(n) and is reused by the spline module |
 | Error reporting | LAPACK status translated to `Bool` / option values | Explicit `LinError` variants with the failing index, size, tolerance, or residual |
 
@@ -57,14 +57,21 @@ existing factor. It reduces the residual without refactoring, while the
 documentation still states the limit: forward error on a very ill-conditioned
 matrix is bounded by the condition number and by double precision.
 
-### Stationary iterative solvers
+### Iterative solvers
 
-`jacobi` and `gauss_seidel` add a different algorithm family. They need no
+`jacobi` and `gauss_seidel` add a stationary-iteration family. They need no
 factorization, use only matrix-vector products, and stop when the residual
 meets a tolerance. They are appropriate when the matrix is diagonally
 dominant or large and the caller wants an iterative method; they raise
 `ZeroDiagonal` or `NoConvergence` instead of returning a plausible-looking
 last iterate.
+
+`conjugate_gradient` adds a Krylov method for symmetric positive definite
+systems, and `preconditioned_conjugate_gradient` uses the diagonal as a
+Jacobi preconditioner. These methods choose search directions from the
+residual history rather than updating one component at a time. A non-positive
+curvature is reported as `Breakdown`, which distinguishes an indefinite or
+non-symmetric matrix from a run that merely needs more iterations.
 
 ### Tridiagonal structure
 
@@ -101,6 +108,7 @@ The linear tests cover:
 - reusable `solve_many`, transpose solve, determinant, and inverse;
 - Cholesky, tridiagonal, residual, and refinement behavior;
 - Jacobi and Gauss-Seidel on a diagonally dominant system;
+- conjugate gradient and Jacobi-preconditioned conjugate gradient on an SPD system;
 - zero diagonal, tolerance, iteration-limit, and no-convergence errors;
 - Hilbert 8 as a deliberately ill-conditioned system;
 - empty and one-row systems as boundary cases.
