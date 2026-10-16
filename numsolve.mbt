@@ -12,9 +12,12 @@
 ///   scalar `euler`, `midpoint`, `rk4` and adaptive `rk45`, plus vector-state
 ///   counterparts and a common `solve_ivp` entry point. The system solvers
 ///   use absolute and relative component tolerances.
-/// * linear systems (`linear.mbt`) - an `LU` factorization with partial
-///   pivoting, a `Cholesky` one for symmetric positive definite matrices, and
-///   the Thomas recurrence for a tridiagonal system.
+/// * linear systems (`linear.mbt` and `linear_iterative.mbt`) - an `LU`
+///   factorization with partial pivoting and reusable transpose/multiple
+///   solves, a `Cholesky` factorization for symmetric positive definite
+///   matrices, compensated residual diagnostics and iterative refinement, the
+///   Thomas recurrence for tridiagonal systems, and Jacobi/Gauss-Seidel
+///   iterations for diagonally dominant systems.
 /// * interpolation (`interp.mbt`) - a line and a cubic spline through a table
 ///   of points, the spline under a natural, clamped or not-a-knot boundary.
 ///
