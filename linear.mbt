@@ -58,6 +58,16 @@ pub suberror LinError {
   /// A tolerance passed to a numerical routine is negative. The payload is
   /// the offending value.
   NonPositiveTolerance(Double)
+  /// An iterative solver was given a non-positive iteration limit. The
+  /// payload is that limit.
+  NonPositiveMaxIterations(Int)
+  /// An iterative solver needed a diagonal entry that is zero, so the
+  /// iteration formula has no denominator. The payload is the row index.
+  ZeroDiagonal(Int)
+  /// A stationary iterative solver exhausted its iteration budget without
+  /// meeting the tolerance. The payloads are the iterations taken and the
+  /// final infinity norm of the residual.
+  NoConvergence(Int, Double)
 }
 
 ///|

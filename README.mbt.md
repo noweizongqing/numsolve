@@ -225,12 +225,21 @@ let x = @numsolve.solve_linear_system(a, [1.0, 2.0, 4.0]) // [0.5, 0.0, 0.0]
 | `solve_tridiagonal` | the Thomas recurrence over three diagonals | the matrix is tridiagonal — `O(n)` instead of `O(n³)` |
 | `residual_norm` | compensated residual `‖b − A·x‖∞` | a computed solution has to be judged, especially when `A` is ill-conditioned |
 | `LU::solve_refined` / `solve_linear_system_refined` | residual correction passes over one factorization | a direct solve needs another pass without refactoring |
+| `jacobi` / `gauss_seidel` | stationary iterations using only matrix-vector products | the system is large or diagonally dominant and a factorization is not wanted |
 
 A decomposition is worth keeping when there is more than one right-hand side:
 `LU::solve_many` answers with a list of them after one factorization, and
 `LU::inverse` is that call with the identity. `LU::determinant` and
 `Cholesky::determinant` come from the diagonal of the factorization at no
 extra cost.
+
+`jacobi` and `gauss_seidel` are the iterative alternatives: they use only
+matrix-vector products, need no factorization, and can stop as soon as the
+residual meets a tolerance. They are not unconditional solvers: the diagonal
+must be non-zero, the iteration has to converge, and a run that exhausts its
+budget raises `NoConvergence`. On the same diagonally dominant system,
+Gauss-Seidel usually takes fewer iterations because it uses each component as
+soon as it is updated.
 
 The residual is computed with a compensated dot product rather than a plain
 matrix-vector multiply. That matters for the last few digits: on Hilbert 8 the
@@ -263,6 +272,11 @@ order of summation inside the same algorithm cannot fail it.
 | `SizeMismatch(Int, Int)` | needed, given | a right-hand side or a diagonal is the wrong length |
 | `Singular(Int)` | the column | a pivot is exactly zero and no row below it can be exchanged for it |
 | `NotPositiveDefinite(Int)` | the index | Cholesky was given a matrix whose pivot is not positive |
+| `NonPositiveRefinementSteps(Int)` | the step count | iterative refinement was asked for zero passes or fewer |
+| `NonPositiveTolerance(Double)` | the tolerance | a tolerance for refinement or an iterative solve is negative |
+| `NonPositiveMaxIterations(Int)` | the limit | an iterative solve was given zero iterations or fewer |
+| `ZeroDiagonal(Int)` | the row | Jacobi or Gauss-Seidel met a zero diagonal entry |
+| `NoConvergence(Int, Double)` | iterations, residual norm | an iterative solve exhausted its budget without meeting the tolerance |
 
 ## Interpolation
 

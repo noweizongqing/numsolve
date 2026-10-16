@@ -12,6 +12,10 @@ pub fn euler_system((Double, Array[Double]) -> Array[Double], Array[Double], Dou
 
 pub fn false_position((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn gauss_seidel(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+
+pub fn jacobi(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+
 pub fn midpoint((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
 
 pub fn midpoint_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
@@ -53,6 +57,9 @@ pub suberror LinError {
   NotPositiveDefinite(Int)
   NonPositiveRefinementSteps(Int)
   NonPositiveTolerance(Double)
+  NonPositiveMaxIterations(Int)
+  ZeroDiagonal(Int)
+  NoConvergence(Int, Double)
 }
 
 pub suberror OdeError {
