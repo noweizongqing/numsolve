@@ -10,8 +10,9 @@
 ///   carrying the values involved.
 /// * ordinary differential equations (`ode.mbt` and `ode_system.mbt`) -
 ///   scalar `euler`, `midpoint`, `rk4` and adaptive `rk45`, plus vector-state
-///   counterparts and a common `solve_ivp` entry point. The system solvers
-///   use absolute and relative component tolerances.
+///   counterparts, a common `solve_ivp` entry point, cubic Hermite dense
+///   output, and first-event detection. The system solvers use absolute and
+///   relative component tolerances.
 /// * linear systems (`linear.mbt` and `linear_iterative.mbt`) - an `LU`
 ///   factorization with partial pivoting and reusable transpose/multiple
 ///   solves, a `Cholesky` factorization for symmetric positive definite

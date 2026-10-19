@@ -14,6 +14,8 @@ pub fn euler_system((Double, Array[Double]) -> Array[Double], Array[Double], Dou
 
 pub fn false_position((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
 
+pub fn first_event(VectorTrajectory, (Double, Array[Double]) -> Double, direction? : EventDirection, tolerance? : Double) -> Event? raise OdeError
+
 pub fn gauss_seidel(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
 
 pub fn jacobi(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
@@ -104,6 +106,19 @@ pub fn CubicSpline::coefficients(Self) -> Array[Array[Double]]
 pub fn CubicSpline::evaluate(Self, Double) -> Double?
 pub fn CubicSpline::moments(Self) -> Array[Double]
 pub fn CubicSpline::new(Array[Double], Array[Double], SplineBoundary) -> Self raise InterpError
+
+pub struct Event {
+  // private fields
+}
+pub fn Event::index(Self) -> Int
+pub fn Event::state(Self) -> Array[Double]
+pub fn Event::time(Self) -> Double
+
+pub(all) enum EventDirection {
+  Any
+  Increasing
+  Decreasing
+}
 
 pub struct LU {
   // private fields

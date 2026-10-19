@@ -35,12 +35,15 @@ The system layer uses `Array[Double]` for the state and adds:
 | `rk4_system` | classic fourth-order Runge-Kutta | `Array[Double]` |
 | `rk45_system` | Dormand-Prince 5(4) with component tolerances | `Array[Double]` |
 | `solve_ivp` | dispatch through `OdeMethod` | `Array[Double]` |
+| `first_event` | first sign-change event | `VectorTrajectory` |
 
 `VectorTrajectory` exposes `times`, `states`, `derivatives`, `end_state`,
 `length`, and `dimension`. The state returned by `solve_ivp` therefore has a
 shape familiar to users of array-oriented ODE libraries. `interpolate_at(t)`
 and `sample_at(times)` provide cubic Hermite dense output between accepted
-steps and raise `OutOfRange` outside the trajectory.
+steps and raise `OutOfRange` outside the trajectory. `first_event` uses the
+same interpolation to locate the first sign change and returns its time,
+state, and interval index.
 
 ## Numerical design
 
@@ -79,13 +82,19 @@ step counts, exhausted evaluation budgets, and out-of-range dense-output
 samples are reported as `OdeError` values instead of being converted into a
 plausible but wrong trajectory.
 
-## Dense output
+## Dense output and events
 
 Each vector sample stores the state and its derivative. Between two accepted
 samples the trajectory uses the cubic Hermite polynomial that matches both
 endpoints and both endpoint derivatives. This is a dense output layer, not a
 new integration step: `sample_at` never calls the right-hand side again and
 does not change the solver's error control.
+
+`first_event` evaluates a caller-supplied event function at accepted samples,
+filters sign changes by `EventDirection`, and refines the crossing with Brent's
+method on the Hermite segment. It returns an `Event` with the event time,
+state, and interval index. The detector reports the first event; a caller that
+needs terminal behavior can stop or restart from the returned event.
 
 ## Verification
 
@@ -98,6 +107,7 @@ The tests include:
 - `solve_ivp` dispatch;
 - cubic Hermite dense output on fixed and adaptive trajectories;
 - dense-output out-of-range validation;
+- first-event detection, direction filtering, and no-event behavior;
 - dimension and empty-state validation.
 
 The core scalar ODE tests also retain their numerical goldens. These checks
@@ -108,7 +118,6 @@ not only a final number copied from a reference.
 
 The following are deliberate boundaries of this version:
 
-- no event detection or root-of-solution callbacks;
 - no implicit, Rosenbrock, or BDF methods for stiff systems;
 - no automatic Jacobian, sensitivities, or complex states;
 - no sparse matrix or large-scale state support.
@@ -117,7 +126,7 @@ The following are deliberate boundaries of this version:
 
 The next useful additions, in dependency order, would be:
 
-1. event detection with terminal and directional options;
+1. terminal event policies and multi-event registration;
 2. implicit solvers for stiff systems, sharing a linear-system interface;
 3. multiple trajectories or batched systems for common parameter sweeps;
 4. stronger cross-validation against SciPy on a broader problem set.
