@@ -36,9 +36,11 @@ The system layer uses `Array[Double]` for the state and adds:
 | `rk45_system` | Dormand-Prince 5(4) with component tolerances | `Array[Double]` |
 | `solve_ivp` | dispatch through `OdeMethod` | `Array[Double]` |
 
-`VectorTrajectory` exposes `times`, `states`, `end_state`, `length`, and
-`dimension`. The state returned by `solve_ivp` therefore has a shape familiar
-to users of array-oriented ODE libraries.
+`VectorTrajectory` exposes `times`, `states`, `derivatives`, `end_state`,
+`length`, and `dimension`. The state returned by `solve_ivp` therefore has a
+shape familiar to users of array-oriented ODE libraries. `interpolate_at(t)`
+and `sample_at(times)` provide cubic Hermite dense output between accepted
+steps and raise `OutOfRange` outside the trajectory.
 
 ## Numerical design
 
@@ -73,8 +75,17 @@ from being ignored or allowed to dominate a component with a much larger
 magnitude.
 
 Dimension mismatches, empty system states, non-positive tolerances, invalid
-step counts, and exhausted evaluation budgets are reported as `OdeError`
-values instead of being converted into a plausible but wrong trajectory.
+step counts, exhausted evaluation budgets, and out-of-range dense-output
+samples are reported as `OdeError` values instead of being converted into a
+plausible but wrong trajectory.
+
+## Dense output
+
+Each vector sample stores the state and its derivative. Between two accepted
+samples the trajectory uses the cubic Hermite polynomial that matches both
+endpoints and both endpoint derivatives. This is a dense output layer, not a
+new integration step: `sample_at` never calls the right-hand side again and
+does not change the solver's error control.
 
 ## Verification
 
@@ -85,6 +96,8 @@ The tests include:
 - scalar and vector adaptive runs against analytic solutions;
 - backward integration;
 - `solve_ivp` dispatch;
+- cubic Hermite dense output on fixed and adaptive trajectories;
+- dense-output out-of-range validation;
 - dimension and empty-state validation.
 
 The core scalar ODE tests also retain their numerical goldens. These checks
@@ -96,7 +109,6 @@ not only a final number copied from a reference.
 The following are deliberate boundaries of this version:
 
 - no event detection or root-of-solution callbacks;
-- no dense output or continuous interpolation between accepted steps;
 - no implicit, Rosenbrock, or BDF methods for stiff systems;
 - no automatic Jacobian, sensitivities, or complex states;
 - no sparse matrix or large-scale state support.
@@ -105,11 +117,10 @@ The following are deliberate boundaries of this version:
 
 The next useful additions, in dependency order, would be:
 
-1. optional evaluation at user-provided times using dense output;
-2. event detection with terminal and directional options;
-3. implicit solvers for stiff systems, sharing a linear-system interface;
-4. multiple trajectories or batched systems for common parameter sweeps;
-5. stronger cross-validation against SciPy on a broader problem set.
+1. event detection with terminal and directional options;
+2. implicit solvers for stiff systems, sharing a linear-system interface;
+3. multiple trajectories or batched systems for common parameter sweeps;
+4. stronger cross-validation against SciPy on a broader problem set.
 
 Each addition should keep the existing scalar APIs stable and continue to
 return explicit errors for unsupported or ill-posed inputs.

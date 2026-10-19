@@ -77,6 +77,7 @@ pub suberror OdeError {
   NonPositiveSteps(Int)
   NonPositiveTolerance(Double)
   MaxEvaluations(Int)
+  OutOfRange(Double, Double, Double)
 }
 
 pub suberror RootError {
@@ -146,9 +147,12 @@ pub fn Trajectory::values(Self) -> Array[Double]
 pub struct VectorTrajectory {
   // private fields
 }
+pub fn VectorTrajectory::derivatives(Self) -> Array[Array[Double]]
 pub fn VectorTrajectory::dimension(Self) -> Int
 pub fn VectorTrajectory::end_state(Self) -> Array[Double]
+pub fn VectorTrajectory::interpolate_at(Self, Double) -> Array[Double] raise OdeError
 pub fn VectorTrajectory::length(Self) -> Int
+pub fn VectorTrajectory::sample_at(Self, Array[Double]) -> Array[Array[Double]] raise OdeError
 pub fn VectorTrajectory::states(Self) -> Array[Array[Double]]
 pub fn VectorTrajectory::times(Self) -> Array[Double]
 

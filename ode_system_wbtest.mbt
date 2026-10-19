@@ -159,3 +159,73 @@ test "an empty vector state is refused" {
   }
   assert_true(failed)
 }
+
+///|
+test "dense output samples an RK4 oscillator between accepted steps" {
+  let trajectory = rk4_system(
+    harmonic_oscillator,
+    [1.0, 0.0],
+    0.0,
+    1.5707963267948966,
+    100,
+  ) catch {
+    _ => abort("the harmonic oscillator is valid")
+  }
+  let samples = trajectory.sample_at([
+    0.7853981633974483, 1.5707963267948966, 0.39269908169872414,
+  ]) catch {
+    _ => abort("the sample times are inside the trajectory")
+  }
+  assert_true(
+    vector_close(samples[0], [0.7071067811865476, -0.7071067811865475], 1.0e-7),
+  )
+  assert_true(vector_close(samples[1], [0.0, -1.0], 1.0e-7))
+  assert_true(
+    vector_close(samples[2], [0.9238795325112867, -0.3826834323650898], 1.0e-7),
+  )
+}
+
+///|
+test "dense output samples an adaptive vector trajectory" {
+  let trajectory = rk45_system(
+    coupled_decay,
+    [1.0, 1.0],
+    0.0,
+    1.0,
+    rtol=1.0e-10,
+    atol=1.0e-12,
+  ) catch {
+    _ => abort("the exponential system is valid")
+  }
+  let samples = trajectory.sample_at([0.25, 0.5, 0.75, 1.0]) catch {
+    _ => abort("the sample times are inside the trajectory")
+  }
+  let times : Array[Double] = [0.25, 0.5, 0.75, 1.0]
+  let mut i = 0
+  while i < times.length() {
+    assert_true(
+      vector_close(
+        samples[i],
+        [@math.exp(times[i]), @math.exp(-2.0 * times[i])],
+        1.0e-6,
+      ),
+    )
+    i = i + 1
+  }
+}
+
+///|
+test "a dense-output sample outside the trajectory is refused" {
+  let trajectory = rk4_system(harmonic_oscillator, [1.0, 0.0], 0.0, 1.0, 10) catch {
+    _ => abort("the harmonic oscillator is valid")
+  }
+  let failed = try {
+    let _ = trajectory.sample_at([1.5])
+    false
+  } catch {
+    OdeError::OutOfRange(lower, upper, requested) =>
+      lower == 0.0 && upper == 1.0 && requested == 1.5
+    _ => false
+  }
+  assert_true(failed)
+}

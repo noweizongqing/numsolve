@@ -64,6 +64,9 @@ pub suberror OdeError {
   /// reaching `t1`. The payload is that budget. A step costs one evaluation
   /// per stage and there are seven stages, so a budget is spent in sevens.
   MaxEvaluations(Int32)
+  /// A requested sample time lies outside a trajectory. The payloads are the
+  /// trajectory start, trajectory end, and the requested time.
+  OutOfRange(Double, Double, Double)
 }
 
 ///|

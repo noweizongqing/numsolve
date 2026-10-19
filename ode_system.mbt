@@ -19,6 +19,7 @@
 pub struct VectorTrajectory {
   priv times : Array[Double]
   priv states : Array[Array[Double]]
+  priv derivatives : Array[Array[Double]]
 }
 
 ///|
@@ -33,6 +34,16 @@ pub fn VectorTrajectory::states(
   self : VectorTrajectory,
 ) -> Array[Array[Double]] {
   self.states
+}
+
+///|
+/// The derivatives at the trajectory samples. These are stored so the
+/// trajectory can interpolate between accepted steps without asking the
+/// caller for the right-hand side again.
+pub fn VectorTrajectory::derivatives(
+  self : VectorTrajectory,
+) -> Array[Array[Double]] {
+  self.derivatives
 }
 
 ///|
@@ -54,9 +65,102 @@ pub fn VectorTrajectory::dimension(self : VectorTrajectory) -> Int32 {
 }
 
 ///|
-/// A one-sample trajectory containing the initial state.
-fn VectorTrajectory::at(t : Double, y : Array[Double]) -> VectorTrajectory {
-  { times: [t], states: [y.copy()], }
+/// A one-sample trajectory containing the initial state and its derivative.
+fn VectorTrajectory::at(
+  t : Double,
+  y : Array[Double],
+  derivative : Array[Double],
+) -> VectorTrajectory {
+  { times: [t], states: [y.copy()], derivatives: [derivative.copy()], }
+}
+
+///|
+/// Locate the interval containing `t` in a monotonically ordered trajectory.
+fn trajectory_interval(times : Array[Double], t : Double) -> Int32 {
+  let last = times.length() - 1
+  let ascending = times[last] >= times[0]
+  let mut low = 0
+  let mut high = last
+  while low + 1 < high {
+    let middle = (low + high) / 2
+    if (ascending && times[middle] <= t) || (!ascending && times[middle] >= t) {
+      low = middle
+    } else {
+      high = middle
+    }
+  }
+  low
+}
+
+///|
+/// Interpolate the trajectory at one time with a cubic Hermite segment.
+///
+/// The value and derivative at both ends of the segment are known, so the
+/// cubic matches `y` and `y'` at the knots. Requesting a time outside the
+/// trajectory raises `OutOfRange`; requesting a knot returns its stored state
+/// without interpolation.
+pub fn VectorTrajectory::interpolate_at(
+  self : VectorTrajectory,
+  t : Double,
+) -> Array[Double] raise OdeError {
+  let last = self.times.length() - 1
+  let first_time = self.times[0]
+  let last_time = self.times[last]
+  let lower = if first_time < last_time { first_time } else { last_time }
+  let upper = if first_time < last_time { last_time } else { first_time }
+  if t < lower || t > upper {
+    raise OdeError::OutOfRange(lower, upper, t)
+  }
+  if t == first_time {
+    return self.states[0].copy()
+  }
+  if t == last_time {
+    return self.states[last].copy()
+  }
+  let index = trajectory_interval(self.times, t)
+  let left_time = self.times[index]
+  let right_time = self.times[index + 1]
+  let h = right_time - left_time
+  if h == 0.0 {
+    return self.states[index].copy()
+  }
+  let s = (t - left_time) / h
+  let s2 = s * s
+  let s3 = s2 * s
+  let h00 = 2.0 * s3 - 3.0 * s2 + 1.0
+  let h10 = s3 - 2.0 * s2 + s
+  let h01 = -2.0 * s3 + 3.0 * s2
+  let h11 = s3 - s2
+  let left = self.states[index]
+  let right = self.states[index + 1]
+  let left_derivative = self.derivatives[index]
+  let right_derivative = self.derivatives[index + 1]
+  let result : Array[Double] = Array(capacity=left.length())
+  let mut i = 0
+  while i < left.length() {
+    result.push(
+      h00 * left[i] +
+      h10 * h * left_derivative[i] +
+      h01 * right[i] +
+      h11 * h * right_derivative[i],
+    )
+    i = i + 1
+  }
+  result
+}
+
+///|
+/// Sample the trajectory at each requested time, in the order requested.
+/// The times need not be sorted; each one is located independently.
+pub fn VectorTrajectory::sample_at(
+  self : VectorTrajectory,
+  sample_times : Array[Double],
+) -> Array[Array[Double]] raise OdeError {
+  let samples : Array[Array[Double]] = Array(capacity=sample_times.length())
+  for t in sample_times {
+    samples.push(self.interpolate_at(t))
+  }
+  samples
 }
 
 ///|
@@ -143,9 +247,11 @@ fn integrate_system(
   }
   let dimension = y0.length()
   let h = (t1 - t0) / steps.to_double()
-  let trajectory = VectorTrajectory::at(t0, y0)
+  let initial_derivative = evaluate_system(f, t0, y0)
+  let trajectory = VectorTrajectory::at(t0, y0, initial_derivative)
   let times = trajectory.times
   let states = trajectory.states
+  let derivatives = trajectory.derivatives
   let mut t = t0
   let mut y = y0.copy()
   let mut taken = 0
@@ -158,6 +264,7 @@ fn integrate_system(
     taken = taken + 1
     t = t + h
     states.push(y.copy())
+    derivatives.push(evaluate_system(f, t, y))
     times.push(if taken == steps { t1 } else { t })
   }
   trajectory
@@ -281,7 +388,7 @@ fn dormand_prince_system_step(
   budget : VectorEvaluationBudget,
   rtol : Double,
   atol : Double,
-) -> (Array[Double], Double) raise OdeError {
+) -> (Array[Double], Double, Array[Double]) raise OdeError {
   let k1 = budget.evaluate(f, t, y)
   let k2 = budget.evaluate(
     f,
@@ -378,7 +485,7 @@ fn dormand_prince_system_step(
   vector_add_scaled(fourth, h * (-92097.0 / 339200.0), k5)
   vector_add_scaled(fourth, h * (187.0 / 2100.0), k6)
   vector_add_scaled(fourth, h * (1.0 / 40.0), k7)
-  (fifth, vector_error_norm(fifth, fourth, rtol, atol))
+  (fifth, vector_error_norm(fifth, fourth, rtol, atol), k7)
 }
 
 ///|
@@ -407,9 +514,11 @@ fn rk45_system_run(
     limit: max_evaluations,
     dimension: y0.length(),
   }
-  let trajectory = VectorTrajectory::at(t0, y0)
+  let initial_derivative = budget.evaluate(f, t0, y0)
+  let trajectory = VectorTrajectory::at(t0, y0, initial_derivative)
   let times = trajectory.times
   let states = trajectory.states
+  let derivatives = trajectory.derivatives
   let mut t = t0
   let mut y = y0.copy()
   let mut h = span / 100.0
@@ -417,13 +526,14 @@ fn rk45_system_run(
     if (t + h - t1) * span > 0.0 || t + h == t {
       h = t1 - t
     }
-    let (fifth, error) = dormand_prince_system_step(
+    let (fifth, error, derivative) = dormand_prince_system_step(
       f, t, y, h, budget, rtol, atol,
     )
     if error <= 1.0 {
       y = fifth
       t = t + h
       states.push(y.copy())
+      derivatives.push(derivative)
       times.push(t)
     }
     let growth = if error == 0.0 {

@@ -10,8 +10,9 @@ This is not presented as a new algorithm or a drop-in replacement for mature
 numerical ecosystems. Its value is a coherent, tested MoonBit API that covers
 common scalar and small-system problems without a foreign-language runtime.
 The ODE layer supports both the original scalar convenience functions and
-vector systems through `solve_ivp`; event handling, dense output, and implicit
-or stiff solvers are not implemented yet and are called out below.
+vector systems through `solve_ivp`, with cubic Hermite dense output between
+accepted steps. Event handling and implicit or stiff solvers are not
+implemented yet and are called out below.
 
 ```moonbit nocheck
 ///|
@@ -27,8 +28,9 @@ let faster = @numsolve.newton(fn(x) { x * x - 2.0 }, fn(x) { 2.0 * x }, 1.5) // 
   surfaces over matching the full feature set of SciPy, Sundials, or
   DifferentialEquations.jl.
 - ODE support now includes vector-valued states, relative and absolute
-  tolerances, and a common `solve_ivp` dispatch. It does not yet provide
-  events, dense output, sensitivity analysis, or implicit stiff solvers.
+  tolerances, a common `solve_ivp` dispatch, and cubic Hermite dense output.
+  It does not yet provide events, sensitivity analysis, or implicit stiff
+  solvers.
 - Reference comparisons are part of the test suite where they add information;
   they are not a claim that every routine is a line-for-line port.
 
@@ -154,6 +156,12 @@ the recommended entry point for new code because it gives systems and scalar
 solvers a common shape without hiding the method choice. It is intentionally a
 small, familiar API, not a claim to cover SciPy's full `solve_ivp` feature set.
 
+A `VectorTrajectory` keeps the state and its derivative at every accepted
+sample. `interpolate_at(t)` evaluates a cubic Hermite segment between two
+samples, and `sample_at(times)` does the same for a list of requested times.
+The sample times may be unsorted, and a time outside the trajectory raises
+`OutOfRange` instead of silently extrapolating.
+
 | Stepper | Order | Evaluations per step | Error when the step halves |
 | --- | --- | --- | --- |
 | `euler` | 1 | 1 | ÷ 2 |
@@ -195,12 +203,14 @@ of that budget raises instead of returning a trajectory that stops short of
 | `NonPositiveSteps(Int)` | the step count | a fixed-step stepper was given zero steps or fewer |
 | `NonPositiveTolerance(Double)` | the offending tolerance | an adaptive solver was given a tolerance that is not positive |
 | `MaxEvaluations(Int)` | the evaluation budget | an adaptive solver spent its budget without reaching `t1` |
+| `OutOfRange(Double, Double, Double)` | start, end, requested time | a dense-output sample lies outside the trajectory |
 
 The tests assert the order each fixed-step method claims, the adaptive
 solver's tolerance behaviour, a two-dimensional oscillator with a known
 period, backward integration, dimension validation, and empty-state
-validation. The ODE tests are explicitly limited to the features implemented
-here: no event detection, dense output, or stiff/implicit methods are claimed.
+validation. The ODE tests also cover cubic Hermite sampling on fixed and
+adaptive trajectories and the out-of-range error. Event detection and
+stiff/implicit methods are not claimed yet.
 
 A longer design note, including the ecosystem comparison and roadmap, is in
 [docs/ode.md](docs/ode.md).
