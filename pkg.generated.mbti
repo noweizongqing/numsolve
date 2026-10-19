@@ -2,83 +2,83 @@
 package "noweizongqing/numsolve"
 
 // Values
-pub fn bisection((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+pub fn bisection((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double raise RootError
 
-pub fn brent((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+pub fn brent((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double raise RootError
 
-pub fn conjugate_gradient(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+pub fn conjugate_gradient(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int32) -> Array[Double] raise LinError
 
-pub fn euler((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+pub fn euler((Double, Double) -> Double, Double, Double, Double, Int32) -> Trajectory raise OdeError
 
-pub fn euler_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
+pub fn euler_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int32) -> VectorTrajectory raise OdeError
 
-pub fn false_position((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+pub fn false_position((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double raise RootError
 
 pub fn first_event(VectorTrajectory, (Double, Array[Double]) -> Double, direction? : EventDirection, tolerance? : Double) -> Event? raise OdeError
 
-pub fn gauss_seidel(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+pub fn gauss_seidel(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int32) -> Array[Double] raise LinError
 
-pub fn jacobi(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+pub fn jacobi(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int32) -> Array[Double] raise LinError
 
-pub fn midpoint((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+pub fn midpoint((Double, Double) -> Double, Double, Double, Double, Int32) -> Trajectory raise OdeError
 
-pub fn midpoint_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
+pub fn midpoint_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int32) -> VectorTrajectory raise OdeError
 
-pub fn newton((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+pub fn newton((Double) -> Double, (Double) -> Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double raise RootError
 
-pub fn preconditioned_conjugate_gradient(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int) -> Array[Double] raise LinError
+pub fn preconditioned_conjugate_gradient(Array[Array[Double]], Array[Double], tolerance? : Double, max_iterations? : Int32) -> Array[Double] raise LinError
 
 pub fn residual_norm(Array[Array[Double]], Array[Double], Array[Double]) -> Double raise LinError
 
-pub fn rk4((Double, Double) -> Double, Double, Double, Double, Int) -> Trajectory raise OdeError
+pub fn rk4((Double, Double) -> Double, Double, Double, Double, Int32) -> Trajectory raise OdeError
 
-pub fn rk45((Double, Double) -> Double, Double, Double, Double, tolerance? : Double, max_evaluations? : Int) -> Trajectory raise OdeError
+pub fn rk45((Double, Double) -> Double, Double, Double, Double, tolerance? : Double, max_evaluations? : Int32) -> Trajectory raise OdeError
 
-pub fn rk45_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, rtol? : Double, atol? : Double, max_evaluations? : Int) -> VectorTrajectory raise OdeError
+pub fn rk45_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, rtol? : Double, atol? : Double, max_evaluations? : Int32) -> VectorTrajectory raise OdeError
 
-pub fn rk4_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int) -> VectorTrajectory raise OdeError
+pub fn rk4_system((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, Int32) -> VectorTrajectory raise OdeError
 
-pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int) -> Double raise RootError
+pub fn secant((Double) -> Double, Double, Double, tolerance? : Double, max_iterations? : Int32) -> Double raise RootError
 
-pub fn solve_banded(Int, Int, Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
+pub fn solve_banded(Int32, Int32, Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
 
-pub fn solve_ivp((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, solver? : OdeMethod, steps? : Int, rtol? : Double, atol? : Double, max_evaluations? : Int) -> VectorTrajectory raise OdeError
+pub fn solve_ivp((Double, Array[Double]) -> Array[Double], Array[Double], Double, Double, solver? : OdeMethod, steps? : Int32, rtol? : Double, atol? : Double, max_evaluations? : Int32) -> VectorTrajectory raise OdeError
 
 pub fn solve_linear_system(Array[Array[Double]], Array[Double]) -> Array[Double] raise LinError
 
-pub fn solve_linear_system_refined(Array[Array[Double]], Array[Double], steps? : Int, tolerance? : Double) -> Array[Double] raise LinError
+pub fn solve_linear_system_refined(Array[Array[Double]], Array[Double], steps? : Int32, tolerance? : Double) -> Array[Double] raise LinError
 
 pub fn solve_tridiagonal(Array[Double], Array[Double], Array[Double], Array[Double]) -> Array[Double] raise LinError
 
 // Errors
 pub suberror InterpError {
-  TooFewKnots(Int)
-  UnevenLengths(Int, Int)
+  TooFewKnots(Int32)
+  UnevenLengths(Int32, Int32)
   NotSorted(Double)
   DuplicateKnots(Double)
 }
 
 pub suberror LinError {
-  NotSquare(Int, Int)
-  SizeMismatch(Int, Int)
-  Singular(Int)
-  NotPositiveDefinite(Int)
-  NonPositiveRefinementSteps(Int)
+  NotSquare(Int32, Int32)
+  SizeMismatch(Int32, Int32)
+  Singular(Int32)
+  NotPositiveDefinite(Int32)
+  NonPositiveRefinementSteps(Int32)
   NonPositiveTolerance(Double)
-  NonPositiveMaxIterations(Int)
-  ZeroDiagonal(Int)
-  NoConvergence(Int, Double)
-  Breakdown(Int)
-  InvalidBandwidth(Int)
-  NotBanded(Int, Int)
+  NonPositiveMaxIterations(Int32)
+  ZeroDiagonal(Int32)
+  NoConvergence(Int32, Double)
+  Breakdown(Int32)
+  InvalidBandwidth(Int32)
+  NotBanded(Int32, Int32)
 }
 
 pub suberror OdeError {
   EmptyState
-  DimensionMismatch(Int, Int)
-  NonPositiveSteps(Int)
+  DimensionMismatch(Int32, Int32)
+  NonPositiveSteps(Int32)
   NonPositiveTolerance(Double)
-  MaxEvaluations(Int)
+  MaxEvaluations(Int32)
   OutOfRange(Double, Double, Double)
 }
 
@@ -86,7 +86,7 @@ pub suberror RootError {
   NotBracketed(Double, Double)
   ZeroDerivative(Double)
   NonPositiveTolerance(Double)
-  MaxIterations(Int)
+  MaxIterations(Int32)
 }
 
 // Types and methods
@@ -95,7 +95,7 @@ pub struct Cholesky {
 }
 pub fn Cholesky::decompose(Array[Array[Double]]) -> Self raise LinError
 pub fn Cholesky::determinant(Self) -> Double
-pub fn Cholesky::size(Self) -> Int
+pub fn Cholesky::size(Self) -> Int32
 pub fn Cholesky::solve(Self, Array[Double]) -> Array[Double] raise LinError
 pub fn Cholesky::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
 
@@ -110,7 +110,7 @@ pub fn CubicSpline::new(Array[Double], Array[Double], SplineBoundary) -> Self ra
 pub struct Event {
   // private fields
 }
-pub fn Event::index(Self) -> Int
+pub fn Event::index(Self) -> Int32
 pub fn Event::state(Self) -> Array[Double]
 pub fn Event::time(Self) -> Double
 
@@ -126,10 +126,10 @@ pub struct LU {
 pub fn LU::decompose(Array[Array[Double]]) -> Self raise LinError
 pub fn LU::determinant(Self) -> Double
 pub fn LU::inverse(Self) -> Array[Array[Double]] raise LinError
-pub fn LU::size(Self) -> Int
+pub fn LU::size(Self) -> Int32
 pub fn LU::solve(Self, Array[Double]) -> Array[Double] raise LinError
 pub fn LU::solve_many(Self, Array[Array[Double]]) -> Array[Array[Double]] raise LinError
-pub fn LU::solve_refined(Self, Array[Array[Double]], Array[Double], steps? : Int, tolerance? : Double) -> Array[Double] raise LinError
+pub fn LU::solve_refined(Self, Array[Array[Double]], Array[Double], steps? : Int32, tolerance? : Double) -> Array[Double] raise LinError
 pub fn LU::solve_transposed(Self, Array[Double]) -> Array[Double] raise LinError
 
 pub struct LinearInterp {
@@ -155,7 +155,7 @@ pub struct Trajectory {
   // private fields
 }
 pub fn Trajectory::end_value(Self) -> Double
-pub fn Trajectory::length(Self) -> Int
+pub fn Trajectory::length(Self) -> Int32
 pub fn Trajectory::times(Self) -> Array[Double]
 pub fn Trajectory::values(Self) -> Array[Double]
 
@@ -163,10 +163,10 @@ pub struct VectorTrajectory {
   // private fields
 }
 pub fn VectorTrajectory::derivatives(Self) -> Array[Array[Double]]
-pub fn VectorTrajectory::dimension(Self) -> Int
+pub fn VectorTrajectory::dimension(Self) -> Int32
 pub fn VectorTrajectory::end_state(Self) -> Array[Double]
 pub fn VectorTrajectory::interpolate_at(Self, Double) -> Array[Double] raise OdeError
-pub fn VectorTrajectory::length(Self) -> Int
+pub fn VectorTrajectory::length(Self) -> Int32
 pub fn VectorTrajectory::sample_at(Self, Array[Double]) -> Array[Array[Double]] raise OdeError
 pub fn VectorTrajectory::states(Self) -> Array[Array[Double]]
 pub fn VectorTrajectory::times(Self) -> Array[Double]
