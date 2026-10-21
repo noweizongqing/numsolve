@@ -117,3 +117,39 @@ test "first_event validates its tolerance" {
   }
   assert_true(failed)
 }
+
+///|
+test "a terminal event can be represented by a truncated trajectory" {
+  let trajectory = rk45_system(
+    harmonic_oscillator,
+    [1.0, 0.0],
+    0.0,
+    3.141592653589793,
+    rtol=1.0e-8,
+    atol=1.0e-10,
+    max_evaluations=1000000,
+  ) catch {
+    _ => abort("the oscillator is valid")
+  }
+  let event = first_event(
+    trajectory,
+    fn(_t, y) { y[0] },
+    direction=EventDirection::Decreasing,
+  ) catch {
+    _ => abort("the event search is valid")
+  }
+  match event {
+    Some(found) => {
+      let stopped = trajectory.truncate_at(found.time()) catch {
+        _ => abort("the event time is inside the trajectory")
+      }
+      let end = stopped.end_state()
+      assert_true(
+        (stopped.times()[stopped.length() - 1] - found.time()).abs() <= 1.0e-15,
+      )
+      assert_true(end[0].abs() <= 1.0e-6)
+      assert_true((end[1] + 1.0).abs() <= 1.0e-6)
+    }
+    None => abort("the oscillator must cross zero at pi/2")
+  }
+}

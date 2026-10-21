@@ -170,6 +170,7 @@ pub fn VectorTrajectory::length(Self) -> Int32
 pub fn VectorTrajectory::sample_at(Self, Array[Double]) -> Array[Array[Double]] raise OdeError
 pub fn VectorTrajectory::states(Self) -> Array[Array[Double]]
 pub fn VectorTrajectory::times(Self) -> Array[Double]
+pub fn VectorTrajectory::truncate_at(Self, Double) -> Self raise OdeError
 
 // Type aliases
 

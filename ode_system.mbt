@@ -150,6 +150,118 @@ pub fn VectorTrajectory::interpolate_at(
 }
 
 ///|
+/// The derivative of the cubic Hermite segment at one time.
+fn VectorTrajectory::interpolate_derivative_at(
+  self : VectorTrajectory,
+  t : Double,
+) -> Array[Double] raise OdeError {
+  let last = self.times.length() - 1
+  let first_time = self.times[0]
+  let last_time = self.times[last]
+  let lower = if first_time < last_time { first_time } else { last_time }
+  let upper = if first_time < last_time { last_time } else { first_time }
+  if t < lower || t > upper {
+    raise OdeError::OutOfRange(lower, upper, t)
+  }
+  if t == first_time {
+    return self.derivatives[0].copy()
+  }
+  if t == last_time {
+    return self.derivatives[last].copy()
+  }
+  let index = trajectory_interval(self.times, t)
+  let left_time = self.times[index]
+  let right_time = self.times[index + 1]
+  let h = right_time - left_time
+  if h == 0.0 {
+    return self.derivatives[index].copy()
+  }
+  let s = (t - left_time) / h
+  let s2 = s * s
+  let dh00 = 6.0 * s2 - 6.0 * s
+  let dh10 = 3.0 * s2 - 4.0 * s + 1.0
+  let dh01 = -6.0 * s2 + 6.0 * s
+  let dh11 = 3.0 * s2 - 2.0 * s
+  let left = self.states[index]
+  let right = self.states[index + 1]
+  let left_derivative = self.derivatives[index]
+  let right_derivative = self.derivatives[index + 1]
+  let result : Array[Double] = Array(capacity=left.length())
+  let mut i = 0
+  while i < left.length() {
+    result.push(
+      (
+        dh00 * left[i] +
+        dh10 * h * left_derivative[i] +
+        dh01 * right[i] +
+        dh11 * h * right_derivative[i]
+      ) /
+      h,
+    )
+    i = i + 1
+  }
+  result
+}
+
+///|
+/// Copy the first `count` samples of a trajectory.
+fn VectorTrajectory::copy_prefix(
+  self : VectorTrajectory,
+  count : Int32,
+) -> VectorTrajectory {
+  let times : Array[Double] = Array(capacity=count)
+  let states : Array[Array[Double]] = Array(capacity=count)
+  let derivatives : Array[Array[Double]] = Array(capacity=count)
+  let mut i = 0
+  while i < count {
+    times.push(self.times[i])
+    states.push(self.states[i].copy())
+    derivatives.push(self.derivatives[i].copy())
+    i = i + 1
+  }
+  { times, states, derivatives, }
+}
+
+///|
+/// Truncate a trajectory at a time inside its range.
+///
+/// The samples after `t` are removed and a final interpolated sample is added
+/// at `t`, so the result can represent a terminal event returned by
+/// `first_event`. The endpoint keeps the derivative of the Hermite segment,
+/// which means it can still be sampled or truncated again.
+pub fn VectorTrajectory::truncate_at(
+  self : VectorTrajectory,
+  t : Double,
+) -> VectorTrajectory raise OdeError {
+  let last = self.times.length() - 1
+  let first_time = self.times[0]
+  let last_time = self.times[last]
+  let lower = if first_time < last_time { first_time } else { last_time }
+  let upper = if first_time < last_time { last_time } else { first_time }
+  if t < lower || t > upper {
+    raise OdeError::OutOfRange(lower, upper, t)
+  }
+  if t == first_time {
+    return self.copy_prefix(1)
+  }
+  if t == last_time {
+    return self
+  }
+  let index = trajectory_interval(self.times, t)
+  if t == self.times[index] {
+    return self.copy_prefix(index + 1)
+  }
+  if t == self.times[index + 1] {
+    return self.copy_prefix(index + 2)
+  }
+  let result = self.copy_prefix(index + 1)
+  result.times.push(t)
+  result.states.push(self.interpolate_at(t))
+  result.derivatives.push(self.interpolate_derivative_at(t))
+  result
+}
+
+///|
 /// Sample the trajectory at each requested time, in the order requested.
 /// The times need not be sorted; each one is located independently.
 pub fn VectorTrajectory::sample_at(

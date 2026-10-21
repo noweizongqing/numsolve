@@ -36,6 +36,7 @@ The system layer uses `Array[Double]` for the state and adds:
 | `rk45_system` | Dormand-Prince 5(4) with component tolerances | `Array[Double]` |
 | `solve_ivp` | dispatch through `OdeMethod` | `Array[Double]` |
 | `first_event` | first sign-change event | `VectorTrajectory` |
+| `truncate_at` | terminal prefix ending at an event time | `VectorTrajectory` |
 
 `VectorTrajectory` exposes `times`, `states`, `derivatives`, `end_state`,
 `length`, and `dimension`. The state returned by `solve_ivp` therefore has a
@@ -94,7 +95,8 @@ does not change the solver's error control.
 filters sign changes by `EventDirection`, and refines the crossing with Brent's
 method on the Hermite segment. It returns an `Event` with the event time,
 state, and interval index. The detector reports the first event; a caller that
-needs terminal behavior can stop or restart from the returned event.
+needs terminal behavior can call `truncate_at(event.time())`, which returns a
+new trajectory ending at the interpolated event state.
 
 ## Verification
 
@@ -108,6 +110,7 @@ The tests include:
 - cubic Hermite dense output on fixed and adaptive trajectories;
 - dense-output out-of-range validation;
 - first-event detection, direction filtering, and no-event behavior;
+- terminal trajectory truncation at an event time;
 - dimension and empty-state validation.
 
 The core scalar ODE tests also retain their numerical goldens. These checks
@@ -126,7 +129,7 @@ The following are deliberate boundaries of this version:
 
 The next useful additions, in dependency order, would be:
 
-1. terminal event policies and multi-event registration;
+1. automatic terminal-event callbacks and multi-event registration;
 2. implicit solvers for stiff systems, sharing a linear-system interface;
 3. multiple trajectories or batched systems for common parameter sweeps;
 4. stronger cross-validation against SciPy on a broader problem set.

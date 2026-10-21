@@ -9,6 +9,14 @@ meaningful reference.
 This is not presented as a new algorithm or a drop-in replacement for mature
 numerical ecosystems. Its value is a coherent, tested MoonBit API that covers
 common scalar and small-system problems without a foreign-language runtime.
+
+## Installation
+
+```bash
+moon add noweizongqing/numsolve
+```
+
+The package is published on [mooncakes.io](https://mooncakes.io/docs/noweizongqing/numsolve).
 The ODE layer supports both the original scalar convenience functions and
 vector systems through `solve_ivp`, with cubic Hermite dense output between
 accepted steps and first-event detection on that interpolation. Implicit or
@@ -151,6 +159,7 @@ let oscillator = @numsolve.solve_ivp(
 | `*_system` counterparts | `Array[Double]` | fixed or adaptive, as above |
 | `solve_ivp` | `Array[Double]` | dispatches to `Euler`, `Midpoint`, `RK4`, or `RK45` |
 | `first_event` | `VectorTrajectory` | locates the first sign change and its time/state |
+| `truncate_at` | `VectorTrajectory` | returns the prefix ending exactly at a requested time |
 
 The scalar fixed-step methods remain the simplest entry point. `solve_ivp` is
 the recommended entry point for new code because it gives systems and scalar
@@ -167,6 +176,9 @@ The sample times may be unsorted, and a time outside the trajectory raises
 a sign change in the requested direction and refines the crossing with Brent's
 method on the same Hermite interpolation. The result carries the event time,
 interpolated state, and interval index; no extra integration step is taken.
+`truncate_at(event.time())` returns a new trajectory whose last sample is the
+interpolated event state, which gives a terminal-event result without mutating
+the original trajectory.
 
 | Stepper | Order | Evaluations per step | Error when the step halves |
 | --- | --- | --- | --- |
@@ -215,8 +227,9 @@ The tests assert the order each fixed-step method claims, the adaptive
 solver's tolerance behaviour, a two-dimensional oscillator with a known
 period, backward integration, dimension validation, and empty-state
 validation. The ODE tests also cover cubic Hermite sampling on fixed and
-adaptive trajectories, out-of-range errors, and event detection on scalar and
-adaptive vector systems. Stiff/implicit methods are not claimed yet.
+adaptive trajectories, out-of-range errors, event detection on scalar and
+adaptive vector systems, and terminal trajectory truncation. Stiff/implicit
+methods are not claimed yet.
 
 A longer design note, including the ecosystem comparison and roadmap, is in
 [docs/ode.md](docs/ode.md).
@@ -450,13 +463,22 @@ package boundary to its word: they call `brent` and the other solvers from
 outside, with and without the optional arguments, and assert the same values
 the library's own tests do.
 
+## Contributing
+
+Development setup, formatting, tests, benchmarks, and release checks are in
+[CONTRIBUTING.md](CONTRIBUTING.md). Release history is in [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+numsolve is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+
 ## Testing
 
 ```
 moon test
 ```
 
-101 tests. Reference values were computed first with SciPy 1.18 and NumPy 2.5
+104 tests. Reference values were computed first with SciPy 1.18 and NumPy 2.5
 and then written down in full: SciPy's `brentq` on `x² − 2` returns
 1.4142135623731364, which is what the test holds Brent to, and the convergence
 rates above are read off the iterates rather than assumed. The ODE goldens

@@ -229,3 +229,50 @@ test "a dense-output sample outside the trajectory is refused" {
   }
   assert_true(failed)
 }
+
+///|
+test "truncate_at keeps the prefix and appends an interpolated endpoint" {
+  let trajectory = rk4_system(
+    fn(_t, _y : Array[Double]) { [1.0] },
+    [0.0],
+    0.0,
+    2.0,
+    100,
+  ) catch {
+    _ => abort("the test equation is valid")
+  }
+  let truncated = trajectory.truncate_at(1.0) catch {
+    _ => abort("1 is inside the trajectory")
+  }
+  let times = truncated.times()
+  assert_eq(truncated.length(), 51)
+  assert_true((times[times.length() - 1] - 1.0).abs() <= 1.0e-15)
+  assert_true(vector_close(truncated.end_state(), [1.0], 1.0e-12))
+  let samples = truncated.sample_at([0.5, 1.0]) catch {
+    _ => abort("the truncated trajectory is sampleable")
+  }
+  assert_true(vector_close(samples[0], [0.5], 1.0e-12))
+  assert_true(vector_close(samples[1], [1.0], 1.0e-12))
+}
+
+///|
+test "truncate_at refuses a time outside the trajectory" {
+  let trajectory = rk4_system(
+    fn(_t, _y : Array[Double]) { [1.0] },
+    [0.0],
+    0.0,
+    1.0,
+    10,
+  ) catch {
+    _ => abort("the test equation is valid")
+  }
+  let failed = try {
+    let _ = trajectory.truncate_at(1.5)
+    false
+  } catch {
+    OdeError::OutOfRange(lower, upper, requested) =>
+      lower == 0.0 && upper == 1.0 && requested == 1.5
+    _ => false
+  }
+  assert_true(failed)
+}
